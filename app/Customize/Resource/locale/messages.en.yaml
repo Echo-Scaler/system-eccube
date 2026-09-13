@@ -1,0 +1,5 @@
+admin.favorite.favorite_products: Favourite Products
+admin.product.favorite_list: Favourite Product List
+admin.product.favorite_management: Favourite Products Management
+admin.product.favorite.delete_complete: Favourite product has been deleted.
+admin.product.favorite.delete_error: Failed to delete favourite product.

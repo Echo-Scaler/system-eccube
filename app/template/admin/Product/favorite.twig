@@ -10,9 +10,9 @@ file that was distributed with this source code.
 #}
 {% extends '@admin/default_frame.twig' %}
 
-{% set menus = ['product', 'product_favorite'] %}
+{% set menus = ['favorite_product'] %}
 
-{% block title %}{{ 'admin.product.favorite_list'|trans }}{% endblock %}
+{% block title %}{{ 'admin.favorite.favorite_products'|trans }}{% endblock %}
 {% block sub_title %}{{ 'admin.product.favorite_management'|trans }}{% endblock %}
 
 {% form_theme searchForm '@admin/Form/bootstrap_4_layout.html.twig' %}
