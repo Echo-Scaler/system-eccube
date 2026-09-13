@@ -15,39 +15,14 @@ file that was distributed with this source code.
 {% block title %}{{ 'admin.favorite.favorite_products'|trans }}{% endblock %}
 {% block sub_title %}{{ 'admin.product.favorite_management'|trans }}{% endblock %}
 
-{% form_theme searchForm '@admin/Form/bootstrap_4_layout.html.twig' %}
-
 {% block stylesheet %}
     <style>
-        .c-statCard {
-            background: #fff;
-            border-radius: 6px;
-            padding: 15px 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            border-left: 4px solid #337ab7;
-        }
-        .c-statCard--product {
-            border-left-color: #28a745;
-        }
-        .c-statCard--customer {
-            border-left-color: #e83e8c;
-        }
-        .c-statCard__num {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-        }
-        .c-statCard__label {
-            font-size: 12px;
-            color: #777;
-            text-transform: uppercase;
-        }
         .fav-product-img {
-            width: 50px;
-            height: 50px;
+            width: 48px;
+            height: 48px;
             object-fit: cover;
             border-radius: 4px;
-            border: 1px solid #eee;
+            border: 1px solid #e9ecef;
         }
     </style>
 {% endblock %}
@@ -75,196 +50,151 @@ file that was distributed with this source code.
 {% endblock %}
 
 {% block main %}
-    <!-- 検索条件エリア (Search Filter Area) -->
-    <div class="c-outsideBlock">
-        <form name="search_form" id="search_form" method="POST" action="{{ url('admin_product_favorite') }}">
-            <div class="c-type2">
-                <div class="row mb-2">
-                    <div class="col-12">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="col-form-label">{{ 'admin.common.multi_search_label'|trans }}</label>
-                                {{ form_widget(searchForm.multi) }}
-                                {{ form_errors(searchForm.multi) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="col-form-label">{{ 'admin.common.create_date'|trans }}</label>
-                                <div class="row align-items-center">
-                                    <div class="col">
-                                        {{ form_widget(searchForm.create_date_start) }}
-                                        {{ form_errors(searchForm.create_date_start) }}
-                                    </div>
-                                    <div class="col-auto"><span>〜</span></div>
-                                    <div class="col">
-                                        {{ form_widget(searchForm.create_date_end) }}
-                                        {{ form_errors(searchForm.create_date_end) }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="c-outsideBlock__contents mb-4">
-                <button class="btn btn-ec-conversion px-5" type="submit">
-                    <i class="fa fa-search me-1"></i> {{ 'admin.common.search'|trans }}
-                </button>
-                <a class="btn btn-ec-sub ms-2" href="{{ url('admin_product_favorite') }}">
-                    <i class="fa fa-refresh me-1"></i> {{ 'admin.common.clear'|trans }}
-                </a>
-                {% if pagination %}
-                    <span class="fw-bold ms-3">{{ 'admin.common.search_result'|trans({"%count%": pagination.totalItemCount})|raw }}</span>
-                {% endif %}
-            </div>
-            {{ form_rest(searchForm) }}
-        </form>
-    </div>
-
-    <!-- 統計サマリー (Summary Statistics Cards) -->
-    <div class="row mb-4">
-        <div class="col-md-4 mb-2">
-            <div class="c-statCard">
-                <div class="c-statCard__label"><i class="fa fa-heart text-danger me-1"></i> 総お気に入り登録件数</div>
-                <div class="c-statCard__num text-primary">{{ totalFavorites|number_format }} <span style="font-size:14px;font-weight:normal;">件</span></div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-2">
-            <div class="c-statCard c-statCard--product">
-                <div class="c-statCard__label"><i class="fa fa-cube text-success me-1"></i> 登録された商品数</div>
-                <div class="c-statCard__num text-success">{{ totalUniqueProducts|number_format }} <span style="font-size:14px;font-weight:normal;">品</span></div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-2">
-            <div class="c-statCard c-statCard--customer">
-                <div class="c-statCard__label"><i class="fa fa-users text-danger me-1"></i> 登録した会員数</div>
-                <div class="c-statCard__num text-danger">{{ totalUniqueCustomers|number_format }} <span style="font-size:14px;font-weight:normal;">名</span></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- データ一覧 (Data Table Area) -->
     <div class="c-contentsArea__cols">
         <div class="c-contentsArea__primaryCol">
             <div class="c-primaryCol">
+
+                <!-- Header Total Summary Badge -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark">
+                            <i class="fa fa-heart text-danger me-2"></i>{{ 'admin.favorite.favorite_products'|trans }}
+                        </h4>
+                        <small class="text-muted">{{ 'admin.product.favorite_management'|trans }}</small>
+                    </div>
+                    {% if pagination and pagination.totalItemCount > 0 %}
+                        <div>
+                            <span class="badge bg-primary fs-6 px-3 py-2">
+                                Total: {{ pagination.totalItemCount|number_format }} items
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Favourite Products Bootstrap Table -->
                 {% if pagination and pagination.totalItemCount > 0 %}
-                    <div class="card rounded border-0 mb-4 d-block">
+                    <div class="card rounded border-0 shadow-sm mb-4">
                         <div class="card-body p-0">
-                            <table class="table table-hover table-sm align-middle mb-0">
-                                <thead class="table-light">
-                                <tr>
-                                    <th class="ps-3 py-3" style="width: 80px;">ID</th>
-                                    <th class="py-3" style="width: 70px;">画像</th>
-                                    <th class="py-3">対象商品 (Product)</th>
-                                    <th class="py-3">登録会員 (Customer)</th>
-                                    <th class="py-3" style="width: 180px;">お気に入り登録日時</th>
-                                    <th class="pe-3 py-3 text-end" style="width: 100px;">アクション</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {% for Favorite in pagination %}
-                                    {% set Product = Favorite.Product %}
-                                    {% set Customer = Favorite.Customer %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped align-middle mb-0">
+                                    <thead class="table-light">
                                     <tr>
-                                        <!-- ID -->
-                                        <td class="ps-3 fw-bold text-muted">{{ Favorite.id }}</td>
-
-                                        <!-- 商品画像 -->
-                                        <td>
-                                            {% if Product %}
-                                                <img class="fav-product-img" src="{{ asset(Product.main_list_image|no_image_product, 'save_image') }}" alt="{{ Product.name }}">
-                                            {% else %}
-                                                <img class="fav-product-img" src="{{ asset(''|no_image_product, 'save_image') }}" alt="">
-                                            {% endif %}
-                                        </td>
-
-                                        <!-- 商品情報 -->
-                                        <td>
-                                            {% if Product %}
-                                                <div>
-                                                    <a class="fw-bold text-decoration-none" href="{{ url('admin_product_product_edit', {id: Product.id}) }}" target="_blank">
-                                                        {{ Product.name }} <i class="fa fa-external-link small text-muted"></i>
-                                                    </a>
-                                                </div>
-                                                <div class="small text-muted">
-                                                    ID: {{ Product.id }}
-                                                    {% if Product.code_min %} | コード: {{ Product.code_min }}{% endif %}
-                                                    | 価格: {{ Product.getPrice02IncTaxMin|price }}
-                                                </div>
-                                            {% else %}
-                                                <span class="text-danger">[削除された商品]</span>
-                                            {% endif %}
-                                        </td>
-
-                                        <!-- 会員情報 -->
-                                        <td>
-                                            {% if Customer %}
-                                                <div>
-                                                    <a class="fw-bold text-decoration-none text-dark" href="{{ url('admin_customer_edit', {id: Customer.id}) }}" target="_blank">
-                                                        {{ Customer.name01 }} {{ Customer.name02 }} ({{ Customer.id }}) <i class="fa fa-external-link small text-muted"></i>
-                                                    </a>
-                                                </div>
-                                                <div class="small text-muted">
-                                                    {{ Customer.email }}
-                                                </div>
-                                            {% else %}
-                                                <span class="text-danger">[退会・削除された会員]</span>
-                                            {% endif %}
-                                        </td>
-
-                                        <!-- 登録日時 -->
-                                        <td>
-                                            <span class="badge bg-light text-dark border">
-                                                <i class="fa fa-calendar me-1 text-muted"></i> {{ Favorite.create_date|date_format('Y-m-d H:i') }}
-                                            </span>
-                                        </td>
-
-                                        <!-- 削除ボタン -->
-                                        <td class="pe-3 text-end">
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-danger btn-delete-fav"
-                                                    {{ csrf_token_for_anchor() }}
-                                                    data-action="{{ url('admin_product_favorite_delete', {id: Favorite.id}) }}"
-                                                    data-fav-id="{{ Favorite.id }}"
-                                                    title="お気に入りから削除">
-                                                <i class="fa fa-trash"></i> 削除
-                                            </button>
-                                        </td>
+                                        <th class="ps-3 py-3" style="width: 70px;">ID</th>
+                                        <th class="py-3" style="width: 60px;">Image</th>
+                                        <th class="py-3">Product Name</th>
+                                        <th class="py-3">Customer Email</th>
+                                        <th class="py-3" style="width: 190px;">Created Date</th>
+                                        <th class="pe-3 py-3 text-end" style="width: 100px;">Action</th>
                                     </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                    {% for Favorite in pagination %}
+                                        {% set Product = Favorite.Product %}
+                                        {% set Customer = Favorite.Customer %}
+                                        <tr>
+                                            <!-- ID -->
+                                            <td class="ps-3 fw-bold text-muted">{{ Favorite.id }}</td>
+
+                                            <!-- Product Image -->
+                                            <td>
+                                                {% if Product %}
+                                                    <img class="fav-product-img" src="{{ asset(Product.main_list_image|no_image_product, 'save_image') }}" alt="{{ Product.name }}">
+                                                {% else %}
+                                                    <img class="fav-product-img" src="{{ asset(''|no_image_product, 'save_image') }}" alt="">
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Product Name -->
+                                            <td>
+                                                {% if Product %}
+                                                    <div>
+                                                        <a class="fw-bold text-decoration-none text-primary" href="{{ url('admin_product_product_edit', {id: Product.id}) }}" target="_blank">
+                                                            {{ Product.name }} <i class="fa fa-external-link small text-muted"></i>
+                                                        </a>
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        ID: {{ Product.id }}
+                                                        {% if Product.code_min %} | Code: {{ Product.code_min }}{% endif %}
+                                                        | Price: {{ Product.getPrice02IncTaxMin|price }}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-danger fw-bold">[Deleted Product]</span>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Customer Email -->
+                                            <td>
+                                                {% if Customer %}
+                                                    <div>
+                                                        <a class="fw-bold text-decoration-none text-dark" href="{{ url('admin_customer_edit', {id: Customer.id}) }}" target="_blank">
+                                                            {{ Customer.email }} <i class="fa fa-external-link small text-muted"></i>
+                                                        </a>
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        {{ Customer.name01 }} {{ Customer.name02 }} (ID: {{ Customer.id }})
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-danger">[Deleted / Withdrawn Customer]</span>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Created Date -->
+                                            <td>
+                                                <span class="badge bg-light text-dark border">
+                                                    <i class="fa fa-calendar me-1 text-muted"></i> {{ Favorite.create_date|date_format('Y-m-d H:i') }}
+                                                </span>
+                                            </td>
+
+                                            <!-- Action (Delete) -->
+                                            <td class="pe-3 text-end">
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger btn-delete-fav"
+                                                        {{ csrf_token_for_anchor() }}
+                                                        data-action="{{ url('admin_product_favorite_delete', {id: Favorite.id}) }}"
+                                                        data-fav-id="{{ Favorite.id }}"
+                                                        title="Delete from favorites">
+                                                    <i class="fa fa-trash me-1"></i> Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- ページャー (Pagination Footer) -->
+                    <!-- Pagination Footer -->
                     <div class="row justify-content-md-center mb-4">
                         {% if pagination.totalItemCount > 0 %}
                             {% include "@admin/pager.twig" with {'pages': pagination.paginationData, 'routes': 'admin_product_favorite_page'} %}
                         {% endif %}
                     </div>
                 {% else %}
-                    <div class="card rounded border-0 mb-4">
+                    <!-- Empty State Card -->
+                    <div class="card rounded border-0 shadow-sm mb-4">
                         <div class="card-body text-center py-5">
                             <i class="fa fa-heart-o fa-3x text-muted mb-3 d-block"></i>
-                            <h5 class="text-muted">お気に入り登録データが見つかりませんでした。</h5>
-                            <p class="text-muted small">検索条件を変更するか、条件をクリアして再検索してください。</p>
+                            <h5 class="text-muted fw-bold">No favourite products registered yet.</h5>
+                            <p class="text-muted small">When customers add products to their favorites from the shop, they will appear in this list.</p>
                         </div>
                     </div>
                 {% endif %}
+
             </div>
         </div>
     </div>
 
-    <!-- 削除確認モーダル (Delete Confirm Modal) -->
+    <!-- Delete Confirm Modal -->
     <div class="modal fade" id="deleteFavoriteModal" tabindex="-1" aria-labelledby="deleteFavoriteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="deleteFavoriteModalLabel">{{ 'admin.common.delete_modal__title'|trans }}</h5>
+                    <h5 class="modal-title fw-bold" id="deleteFavoriteModalLabel">{{ 'admin.common.delete_modal__title'|trans }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>お気に入りID: <strong id="favIdDisplay"></strong> を削除してもよろしいですか？</p>
+                    <p>Are you sure you want to delete Favourite ID: <strong id="favIdDisplay"></strong>?</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-ec-sub" data-bs-dismiss="modal">{{ 'admin.common.cancel'|trans }}</button>
