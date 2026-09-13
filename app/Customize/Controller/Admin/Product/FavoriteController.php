@@ -49,8 +49,8 @@ class FavoriteController extends AbstractController
      * Admin အကြိုက်ဆုံးပစ္စည်းများ စာရင်း ပြသခြင်း
      * (Admin Favourite Product List)
      *
-     * @Route("/%eccube_admin_route%/product/favorite", name="admin_product_favorite", methods={"GET"})
-     * @Route("/%eccube_admin_route%/product/favorite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favorite_page", methods={"GET"})
+     * @Route("/%eccube_admin_route%/product/favorite", name="admin_product_favorite", methods={"GET", "POST"})
+     * @Route("/%eccube_admin_route%/product/favorite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favorite_page", methods={"GET", "POST"})
      * @Template("@admin/Product/favorite.twig")
      *
      * @param Request $request
