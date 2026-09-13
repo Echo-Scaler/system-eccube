@@ -7,6 +7,9 @@ parameters:
                 product_master:
                     name: admin.product.product_list
                     url: admin_product
+                custom_product_list:
+                    name: admin.product.custom_product_list
+                    url: admin_product_custom_list
                 product_edit:
                     name: admin.product.product_registration
                     url: admin_product_product_new
@@ -31,6 +34,10 @@ parameters:
                 category_csv_import:
                     name: admin.product.category_csv_upload
                     url: admin_product_category_csv_import
+        favorite_product:
+            name: admin.favorite.favorite_products
+            icon: fa-heart
+            url: admin_product_favorite
         order:
             name: admin.order.order_management
             icon: fa-shopping-cart

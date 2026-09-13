@@ -1,0 +1,210 @@
+{#
+This file is part of EC-CUBE
+
+Copyright(c) EC-CUBE CO.,LTD. All Rights Reserved.
+
+http://www.ec-cube.co.jp/
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+#}
+{% extends '@admin/default_frame.twig' %}
+
+{% set menus = ['favorite_product'] %}
+
+{% block title %}{{ 'admin.favorite.favorite_products'|trans }}{% endblock %}
+{% block sub_title %}{{ 'admin.product.favorite_management'|trans }}{% endblock %}
+
+{% block stylesheet %}
+    <style>
+        .fav-product-img {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+    </style>
+{% endblock %}
+
+{% block javascript %}
+    <script>
+        $(function() {
+            // Delete Modal Trigger
+            $('.btn-delete-fav').on('click', function(e) {
+                e.preventDefault();
+                var action = $(this).data('action');
+                var token = $(this).attr('token-for-anchor');
+                var favId = $(this).data('fav-id');
+
+                $('#deleteFavoriteModal').find('#favIdDisplay').text(favId);
+                var $form = $('#deleteFavoriteForm');
+                $form.attr('action', action);
+                $form.find('input[name="{{ constant('Eccube\\Common\\Constant::TOKEN_NAME') }}"]').val(token);
+
+                var modal = new bootstrap.Modal(document.getElementById('deleteFavoriteModal'));
+                modal.show();
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block main %}
+    <div class="c-contentsArea__cols">
+        <div class="c-contentsArea__primaryCol">
+            <div class="c-primaryCol">
+
+                <!-- Header Total Summary Badge -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark">
+                            <i class="fa fa-heart text-danger me-2"></i>{{ 'admin.favorite.favorite_products'|trans }}
+                        </h4>
+                        <small class="text-muted">{{ 'admin.product.favorite_management'|trans }}</small>
+                    </div>
+                    {% if pagination and pagination.totalItemCount > 0 %}
+                        <div>
+                            <span class="badge bg-primary fs-6 px-3 py-2">
+                                Total: {{ pagination.totalItemCount|number_format }} items
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Favourite Products Bootstrap Table -->
+                {% if pagination and pagination.totalItemCount > 0 %}
+                    <div class="card rounded border-0 shadow-sm mb-4">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped align-middle mb-0">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3 py-3" style="width: 70px;">ID</th>
+                                        <th class="py-3" style="width: 60px;">Image</th>
+                                        <th class="py-3">Product Name</th>
+                                        <th class="py-3">Customer Email</th>
+                                        <th class="py-3" style="width: 190px;">Created Date</th>
+                                        <th class="pe-3 py-3 text-end" style="width: 100px;">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for Favorite in pagination %}
+                                        {% set Product = Favorite.Product %}
+                                        {% set Customer = Favorite.Customer %}
+                                        <tr>
+                                            <!-- ID -->
+                                            <td class="ps-3 fw-bold text-muted">{{ Favorite.id }}</td>
+
+                                            <!-- Product Image -->
+                                            <td>
+                                                {% if Product %}
+                                                    <img class="fav-product-img" src="{{ asset(Product.main_list_image|no_image_product, 'save_image') }}" alt="{{ Product.name }}">
+                                                {% else %}
+                                                    <img class="fav-product-img" src="{{ asset(''|no_image_product, 'save_image') }}" alt="">
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Product Name -->
+                                            <td>
+                                                {% if Product %}
+                                                    <div>
+                                                        <a class="fw-bold text-decoration-none text-primary" href="{{ url('admin_product_product_edit', {id: Product.id}) }}" target="_blank">
+                                                            {{ Product.name }} <i class="fa fa-external-link small text-muted"></i>
+                                                        </a>
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        ID: {{ Product.id }}
+                                                        {% if Product.code_min %} | Code: {{ Product.code_min }}{% endif %}
+                                                        | Price: {{ Product.getPrice02IncTaxMin|price }}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-danger fw-bold">[Deleted Product]</span>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Customer Email -->
+                                            <td>
+                                                {% if Customer %}
+                                                    <div>
+                                                        <a class="fw-bold text-decoration-none text-dark" href="{{ url('admin_customer_edit', {id: Customer.id}) }}" target="_blank">
+                                                            {{ Customer.email }} <i class="fa fa-external-link small text-muted"></i>
+                                                        </a>
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        {{ Customer.name01 }} {{ Customer.name02 }} (ID: {{ Customer.id }})
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-danger">[Deleted / Withdrawn Customer]</span>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Created Date -->
+                                            <td>
+                                                <span class="badge bg-light text-dark border">
+                                                    <i class="fa fa-calendar me-1 text-muted"></i> {{ Favorite.create_date|date_format('Y-m-d H:i') }}
+                                                </span>
+                                            </td>
+
+                                            <!-- Action (Delete) -->
+                                            <td class="pe-3 text-end">
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger btn-delete-fav"
+                                                        {{ csrf_token_for_anchor() }}
+                                                        data-action="{{ url('admin_product_favorite_delete', {id: Favorite.id}) }}"
+                                                        data-fav-id="{{ Favorite.id }}"
+                                                        title="Delete from favorites">
+                                                    <i class="fa fa-trash me-1"></i> Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination Footer -->
+                    <div class="row justify-content-md-center mb-4">
+                        {% if pagination.totalItemCount > 0 %}
+                            {% include "@admin/pager.twig" with {'pages': pagination.paginationData, 'routes': 'admin_product_favorite_page'} %}
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <!-- Empty State Card -->
+                    <div class="card rounded border-0 shadow-sm mb-4">
+                        <div class="card-body text-center py-5">
+                            <i class="fa fa-heart-o fa-3x text-muted mb-3 d-block"></i>
+                            <h5 class="text-muted fw-bold">No favourite products registered yet.</h5>
+                            <p class="text-muted small">When customers add products to their favorites from the shop, they will appear in this list.</p>
+                        </div>
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal fade" id="deleteFavoriteModal" tabindex="-1" aria-labelledby="deleteFavoriteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="deleteFavoriteModalLabel">{{ 'admin.common.delete_modal__title'|trans }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete Favourite ID: <strong id="favIdDisplay"></strong>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ec-sub" data-bs-dismiss="modal">{{ 'admin.common.cancel'|trans }}</button>
+                    <form id="deleteFavoriteForm" method="POST" action="">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <input type="hidden" name="{{ constant('Eccube\\Common\\Constant::TOKEN_NAME') }}" value="">
+                        <button type="submit" class="btn btn-ec-delete">{{ 'admin.common.delete'|trans }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

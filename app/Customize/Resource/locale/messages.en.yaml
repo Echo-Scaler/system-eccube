@@ -1,0 +1,14 @@
+admin.favorite.favorite_products: Favourite Products
+admin.product.favorite_list: Favourite Product List
+admin.product.favorite_management: Favourite Products Management
+admin.product.favorite.delete_complete: Favourite product has been deleted.
+admin.product.favorite.delete_error: Failed to delete favourite product.
+
+# Custom Product List
+admin.product.custom_product_list: Custom Product List
+admin.product.custom_product_list_description: View, search, and manage registered store products.
+admin.product.stat_total_products: Total Products
+admin.product.stat_public_products: Published
+admin.product.stat_hidden_products: Hidden
+admin.product.stat_total_categories: Total Categories
+admin.product.no_products_message: No products matching the search criteria were found.
