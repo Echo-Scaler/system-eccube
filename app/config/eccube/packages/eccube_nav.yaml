@@ -7,6 +7,9 @@ parameters:
                 product_master:
                     name: admin.product.product_list
                     url: admin_product
+                product_favorite:
+                    name: admin.product.favorite_list
+                    url: admin_product_favorite
                 product_edit:
                     name: admin.product.product_registration
                     url: admin_product_product_new
