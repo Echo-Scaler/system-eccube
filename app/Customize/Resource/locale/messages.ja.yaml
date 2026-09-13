@@ -3,3 +3,12 @@ admin.product.favorite_list: お気に入り商品一覧
 admin.product.favorite_management: お気に入り商品管理
 admin.product.favorite.delete_complete: お気に入り商品を削除しました。
 admin.product.favorite.delete_error: お気に入り商品の削除に失敗しました。
+
+# Custom Product List
+admin.product.custom_product_list: カスタム商品一覧
+admin.product.custom_product_list_description: 登録されている商品の一覧表示、検索、および管理を行うことができます。
+admin.product.stat_total_products: 総商品数
+admin.product.stat_public_products: 公開中
+admin.product.stat_hidden_products: 非公開
+admin.product.stat_total_categories: カテゴリ数
+admin.product.no_products_message: 条件に一致する商品が見つかりませんでした。

@@ -1,0 +1,72 @@
+# Custom Admin Product List Page & Navigation Menu Implementation Plan
+
+## Overview (အနှစ်ချုပ်)
+EC-CUBE 4.3.1 တွင် မူရင်း Core ဖိုင်များကို လုံးဝမထိခိုက်စေဘဲ (`app/Customize/` နှင့် `app/template/` အောက်တွင်သာ) Admin Panel အတွက် **သီးသန့် Custom Product List (カスタム商品一覧) စာမျက်နှာအသစ်** နှင့် **Admin Navigation Sidebar Menu** အသစ်ကို အတွေ့အကြုံ (၆) လရှိ Junior Developer များ အလွယ်တကူ လိုက်နာနားလည်နိုင်စေရန် အဆင့်ဆင့် တည်ဆောက်သွားမည် ဖြစ်ပါသည်။ ထို့အပြင် မြန်မာဘာသာဖြင့် အသေးစိတ် Step-by-Step Implementation Guide၊ မူရင်း Core ဖိုင်များစာရင်း (Origin Core File List) နှင့် ပြင်ဆင်/ဖန်တီးထားသော ဖိုင်များစာရင်း (Updated/Created File List) တို့ကို ပြည့်စုံစွာ ထည့်သွင်းပေးမည် ဖြစ်ပါသည်။
+
+---
+
+## Proposed Changes (အကောင်အထည်ဖော်မည့် ပြောင်းလဲမှုများ)
+
+### 1. Form Component (ရှာဖွေမှု Form Type)
+#### [NEW] [SearchCustomProductType.php](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/Customize/Form/Type/Admin/SearchCustomProductType.php)
+- ကုန်ပစ္စည်း ID, အမည်, Product Code များကို ရှာဖွေနိုင်သည့် Keyword input။
+- Category ရွေးချယ်နိုင်သော Dropdown။
+- Product Status (公開 / 非公開 / 廃止) စစ်ထုတ်နိုင်သော Filter။
+- Stock Status (在庫あり / 在庫切れ) စစ်ထုတ်နိုင်သော Filter။
+- စတင်ထည့်သွင်းသည့် ရက်စွဲ (Create Date Start/End) စစ်ထုတ်မှုများ။
+
+---
+
+### 2. Admin Controller Component (လုပ်ဆောင်ချက်များ ကိုင်တွယ်ခြင်း)
+#### [NEW] [CustomProductListController.php](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/Customize/Controller/Admin/Product/CustomProductListController.php)
+- Standard PHPDoc Route Annotation (`@Route("/%eccube_admin_route%/product/custom_list", name="admin_product_custom_list")`) ဖြင့် တည်ဆောက်မည်။
+- QueryBuilder ဖြင့် Product, ProductClasses, Category, Image များကို ထိရောက်စွာ JOIN ခေါ်ယူခြင်း။
+- Pagination (KnpPaginator) ချိတ်ဆက်ခြင်း။
+- အနှစ်ချုပ် ကိန်းဂဏန်းများ (Total Products, Public, Non-Public, Out of Stock) တွက်ချက်ပြသခြင်း။
+
+---
+
+### 3. Twig Template Component (စီမံခန့်ခွဲမှု မျက်နှာပြင် UI)
+#### [NEW] [custom_list.twig](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/template/admin/Product/custom_list.twig)
+- Admin Layout Frame (`@admin/default_frame.twig`) ကို extend လုပ်ထားမည်။
+- အနှစ်ချုပ် Summary Statistics Cards (Total, Public, Non-Public, Out of Stock)။
+- ကုန်ပစ္စည်း ရှာဖွေမှု Search Filter Card နှင့် Reset ခလုတ်။
+- ကုန်ပစ္စည်း ပုံရိပ်ငယ် (Thumbnail Image)၊ အမည်၊ Code၊ Category Badge၊ ဈေးနှုန်း (အခွန်ပါ/မပါ)၊ လက်ကျန် Stock၊ အခြေအနေ Status Badge များ ပါဝင်သော Data Table။
+- ရှေ့ပြေးကြည့်ရှုခြင်း (View on Front Store) နှင့် Admin Edit လုပ်ဆောင်ချက် ခလုတ်များ။
+- KnpPaginator ပုံစံ စာမျက်နှာ ကူးပြောင်းမှု (Pagination UI)။
+
+---
+
+### 4. Admin Menu Configuration & Translations (မီးနူးနှင့် ဘာသာစကား)
+#### [MODIFY] [eccube_nav.yaml](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/config/eccube/packages/eccube_nav.yaml)
+- Admin Sidebar ၏ `商品管理 (Product Management)` အောက်တွင် `カスタム商品一覧` (`admin_product_custom_list`) Menu link အသစ် ထည့်သွင်းမည်။
+
+#### [MODIFY] [messages.ja.yaml](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/Customize/Resource/locale/messages.ja.yaml) & [messages.en.yaml](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/Customize/Resource/locale/messages.en.yaml)
+- Custom Product List အတွက် Translation Text များ ထည့်သွင်းမည်။
+
+---
+
+### 5. Documentation in Burmese (မြန်မာဘာသာဖြင့် အဆင့်ဆင့် လမ်းညွှန်ချက်)
+#### [NEW] [custom_product_list_guide.md](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/My-Task-List-Folder/product-section/custom_product_list_guide.md)
+- အနှစ်ချုပ် ခြုံငုံသုံးသပ်ချက် (Overview & Architecture)။
+- မူရင်း Core ဖိုင်များ စာရင်း (Origin Core File List Table)။
+- ပြင်ဆင်/အသစ်ဖန်တီးထားသော ဖိုင်များ စာရင်း (Updated/Created File List Table)။
+- အတွေ့အကြုံ (၆) လ အဆင့် နားလည်နိုင်သော အဆင့်ဆင့် ရေးသားပုံ လမ်းညွှန် (Code Snippets & Detailed Explanations)။
+- Terminal Command များ (`cache:clear`, etc.)။
+
+---
+
+## Verification Plan (စစ်ဆေးအတည်ပြုမည့် အစီအစဉ်)
+
+### 1. Code Syntax & Linting Verification
+- ဖန်တီးထားသော PHP ဖိုင်များ (`CustomProductListController.php`, `SearchCustomProductType.php`) နှင့် Twig/YAML ဖိုင်များ syntax မှန်ကန်မှု ရှိမရှိ စစ်ဆေးခြင်း။
+
+### 2. Cache Clear & Route Check
+- Cache clear ပြုလုပ်ပြီး Route list တွင် `admin_product_custom_list` ပါဝင်မှု ရှိမရှိ စစ်ဆေးခြင်း:
+  ```bash
+  bin/console cache:clear --no-warmup
+  bin/console debug:router admin_product_custom_list
+  ```
+
+### 3. File Structure & Documentation Verification
+- `My-Task-List-Folder/product-section/custom_product_list_guide.md` တွင် မြန်မာဘာသာဖြင့် လိုအပ်သော အချက်အလက်များ၊ Core File List နှင့် Updated File List များ အပြည့်အစုံ ပါဝင်မှု ရှိမရှိ စစ်ဆေးခြင်း။
