@@ -65,7 +65,7 @@ file that was distributed with this source code.
                 $('#deleteFavoriteModal').find('#favIdDisplay').text(favId);
                 var $form = $('#deleteFavoriteForm');
                 $form.attr('action', action);
-                $form.find('input[name="{{ constant('Eccube\\\\Common\\\\Constant::TOKEN_NAME') }}"]').val(token);
+                $form.find('input[name="{{ constant('Eccube\\Common\\Constant::TOKEN_NAME') }}"]').val(token);
 
                 var modal = new bootstrap.Modal(document.getElementById('deleteFavoriteModal'));
                 modal.show();
@@ -270,7 +270,7 @@ file that was distributed with this source code.
                     <button type="button" class="btn btn-ec-sub" data-bs-dismiss="modal">{{ 'admin.common.cancel'|trans }}</button>
                     <form id="deleteFavoriteForm" method="POST" action="">
                         <input type="hidden" name="_method" value="DELETE">
-                        <input type="hidden" name="{{ constant('Eccube\\\\Common\\\\Constant::TOKEN_NAME') }}" value="">
+                        <input type="hidden" name="{{ constant('Eccube\\Common\\Constant::TOKEN_NAME') }}" value="">
                         <button type="submit" class="btn btn-ec-delete">{{ 'admin.common.delete'|trans }}</button>
                     </form>
                 </div>

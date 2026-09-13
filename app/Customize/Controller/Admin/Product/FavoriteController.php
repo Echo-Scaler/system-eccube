@@ -162,24 +162,30 @@ class FavoriteController extends AbstractController
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('cfp', 'p', 'c')
             ->from(CustomerFavoriteProduct::class, 'cfp')
-            ->innerJoin('cfp.Product', 'p')
-            ->innerJoin('cfp.Customer', 'c')
+            ->leftJoin('cfp.Product', 'p')
+            ->leftJoin('cfp.Customer', 'c')
             ->addOrderBy('cfp.create_date', 'DESC');
 
-        // Multi Search (Product Name, Code, Customer Name, Email, ID)
+        // Multi Search (Product Name, Customer Name, Email, ID)
         if (!empty($searchData['multi'])) {
             $multi = trim($searchData['multi']);
-            $qb->andWhere(
-                $qb->expr()->orX(
-                    $qb->expr()->like('p.name', ':multi'),
-                    $qb->expr()->like('p.id', ':multi_exact'),
-                    $qb->expr()->like('c.name01', ':multi'),
-                    $qb->expr()->like('c.name02', ':multi'),
-                    $qb->expr()->like('c.email', ':multi'),
-                    $qb->expr()->eq('c.id', ':multi_exact')
-                )
-            )->setParameter('multi', '%'.$multi.'%')
-             ->setParameter('multi_exact', is_numeric($multi) ? (int)$multi : 0);
+            $orX = $qb->expr()->orX(
+                $qb->expr()->like('p.name', ':multi'),
+                $qb->expr()->like('c.name01', ':multi'),
+                $qb->expr()->like('c.name02', ':multi'),
+                $qb->expr()->like('c.kana01', ':multi'),
+                $qb->expr()->like('c.kana02', ':multi'),
+                $qb->expr()->like('c.email', ':multi')
+            );
+            $qb->setParameter('multi', '%' . $multi . '%');
+
+            if (is_numeric($multi)) {
+                $orX->add($qb->expr()->eq('p.id', ':multi_id'));
+                $orX->add($qb->expr()->eq('c.id', ':multi_id'));
+                $qb->setParameter('multi_id', (int) $multi);
+            }
+
+            $qb->andWhere($orX);
         }
 
         // Date Start
@@ -212,19 +218,40 @@ class FavoriteController extends AbstractController
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('COUNT(DISTINCT cfp.Product)')
             ->from(CustomerFavoriteProduct::class, 'cfp')
-            ->innerJoin('cfp.Product', 'p')
-            ->innerJoin('cfp.Customer', 'c');
+            ->leftJoin('cfp.Product', 'p')
+            ->leftJoin('cfp.Customer', 'c');
 
         if (!empty($searchData['multi'])) {
             $multi = trim($searchData['multi']);
-            $qb->andWhere(
-                $qb->expr()->orX(
-                    $qb->expr()->like('p.name', ':multi'),
-                    $qb->expr()->like('c.name01', ':multi'),
-                    $qb->expr()->like('c.name02', ':multi'),
-                    $qb->expr()->like('c.email', ':multi')
-                )
-            )->setParameter('multi', '%'.$multi.'%');
+            $orX = $qb->expr()->orX(
+                $qb->expr()->like('p.name', ':multi'),
+                $qb->expr()->like('c.name01', ':multi'),
+                $qb->expr()->like('c.name02', ':multi'),
+                $qb->expr()->like('c.kana01', ':multi'),
+                $qb->expr()->like('c.kana02', ':multi'),
+                $qb->expr()->like('c.email', ':multi')
+            );
+            $qb->setParameter('multi', '%' . $multi . '%');
+
+            if (is_numeric($multi)) {
+                $orX->add($qb->expr()->eq('p.id', ':multi_id'));
+                $orX->add($qb->expr()->eq('c.id', ':multi_id'));
+                $qb->setParameter('multi_id', (int) $multi);
+            }
+
+            $qb->andWhere($orX);
+        }
+
+        if (!empty($searchData['create_date_start'])) {
+            $qb->andWhere('cfp.create_date >= :date_start')
+               ->setParameter('date_start', $searchData['create_date_start']);
+        }
+
+        if (!empty($searchData['create_date_end'])) {
+            $dateEnd = clone $searchData['create_date_end'];
+            $dateEnd->modify('+1 day');
+            $qb->andWhere('cfp.create_date < :date_end')
+               ->setParameter('date_end', $dateEnd);
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();
@@ -242,19 +269,40 @@ class FavoriteController extends AbstractController
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('COUNT(DISTINCT cfp.Customer)')
             ->from(CustomerFavoriteProduct::class, 'cfp')
-            ->innerJoin('cfp.Product', 'p')
-            ->innerJoin('cfp.Customer', 'c');
+            ->leftJoin('cfp.Product', 'p')
+            ->leftJoin('cfp.Customer', 'c');
 
         if (!empty($searchData['multi'])) {
             $multi = trim($searchData['multi']);
-            $qb->andWhere(
-                $qb->expr()->orX(
-                    $qb->expr()->like('p.name', ':multi'),
-                    $qb->expr()->like('c.name01', ':multi'),
-                    $qb->expr()->like('c.name02', ':multi'),
-                    $qb->expr()->like('c.email', ':multi')
-                )
-            )->setParameter('multi', '%'.$multi.'%');
+            $orX = $qb->expr()->orX(
+                $qb->expr()->like('p.name', ':multi'),
+                $qb->expr()->like('c.name01', ':multi'),
+                $qb->expr()->like('c.name02', ':multi'),
+                $qb->expr()->like('c.kana01', ':multi'),
+                $qb->expr()->like('c.kana02', ':multi'),
+                $qb->expr()->like('c.email', ':multi')
+            );
+            $qb->setParameter('multi', '%' . $multi . '%');
+
+            if (is_numeric($multi)) {
+                $orX->add($qb->expr()->eq('p.id', ':multi_id'));
+                $orX->add($qb->expr()->eq('c.id', ':multi_id'));
+                $qb->setParameter('multi_id', (int) $multi);
+            }
+
+            $qb->andWhere($orX);
+        }
+
+        if (!empty($searchData['create_date_start'])) {
+            $qb->andWhere('cfp.create_date >= :date_start')
+               ->setParameter('date_start', $searchData['create_date_start']);
+        }
+
+        if (!empty($searchData['create_date_end'])) {
+            $dateEnd = clone $searchData['create_date_end'];
+            $dateEnd->modify('+1 day');
+            $qb->andWhere('cfp.create_date < :date_end')
+               ->setParameter('date_end', $dateEnd);
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();
