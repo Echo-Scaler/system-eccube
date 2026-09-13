@@ -31,6 +31,27 @@ file that was distributed with this source code.
         .ec-productCard__favorite-btn:hover {
             opacity: 0.9;
         }
+        /* Popularity Badge for Other Users Favorite */
+        .ec-productCard__popularityBadge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 2;
+        }
+        .ec-favBadge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.95) !important;
+            color: #d63384 !important;
+            border: 1px solid #f8d7da;
+            border-radius: 12px;
+        }
+        .ec-favBadge i {
+            color: #e83e8c;
+            margin-right: 3px;
+        }
     </style>
 {% endblock %}
 
@@ -201,10 +222,22 @@ file that was distributed with this source code.
             </div>
         </div>
         {% if pagination.totalItemCount > 0 %}
+            {# Batch preload favorite counts for the current page items #}
+            {% do preload_favorite_counts(pagination) %}
             <div class="ec-shelfRole">
                 <ul class="ec-shelfGrid">
                     {% for Product in pagination %}
                         <li class="ec-shelfGrid__item">
+                            {# Popularity Badge / Indicator for Products Favorited by Other Users #}
+                            {% set fav_count = favorite_count(Product) %}
+                            {% if fav_count > 0 %}
+                                <div class="ec-productCard__popularityBadge">
+                                    <span class="badge ec-favBadge">
+                                        <i class="fa fa-heart"></i> {{ fav_count }}人が登録中
+                                    </span>
+                                </div>
+                            {% endif %}
+
                             <a href="{{ url('product_detail', {'id': Product.id}) }}">
                                 <p class="ec-shelfGrid__item-image">
                                     <img src="{{ asset(Product.main_list_image|no_image_product, 'save_image') }}" alt="{{ Product.name }}" {% if loop.index > 5 %} loading="lazy"{% endif %}>

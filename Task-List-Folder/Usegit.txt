@@ -1,0 +1,12 @@
+Terminal မှ တိုက်ရိုက် merge လုပ်လိုပါက:
+
+bash
+# 1. main branch သို့ ပြောင်းခြင်း
+git checkout main
+git pull origin main
+# 2. sy/test/favourite မှ ပြင်ဆင်ချက်များကို merge လုပ်ခြင်း
+git merge sy/test/favourite
+# 3. GitHub main သို့ push လုပ်ခြင်း
+git push origin main
+# 4. sy/test/favourite branch သို့ ပြန်ပြောင်းခြင်း
+git checkout sy/test/favourite

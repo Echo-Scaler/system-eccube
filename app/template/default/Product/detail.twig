@@ -349,6 +349,23 @@ file that was distributed with this source code.
                             <li class="ec-productRole__tag tag_{{ Tag.id }}">{{ Tag }}</li>
                         {% endfor %}
                     </ul>
+                    {# အခြား User များ အကြိုက်ဆုံး မှတ်သားထားမှု အခြေအနေ (Popularity Badge) #}
+                    {% set fav_count = favorite_count(Product) %}
+                    {% set other_fav_count = other_favorite_count(Product) %}
+                    {% if fav_count > 0 %}
+                        <div class="ec-productRole__favCount mb-2">
+                            <span class="badge bg-light text-danger border border-danger p-2" style="font-size: 12px; border-radius: 6px;">
+                                <i class="fa fa-heart"></i>
+                                {% if is_favorite(Product) and other_fav_count > 0 %}
+                                    あなたと他 {{ other_fav_count }} 人のユーザーがお気に入りに登録しています
+                                {% elseif is_favorite(Product) %}
+                                    あなたがお気に入りに登録しています
+                                {% else %}
+                                    {{ fav_count }} 人のユーザーがお気に入りに登録しています
+                                {% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
                     {# 通常価格 #}
                     {% if Product.hasProductClass -%}
                         <div class="ec-productRole__priceRegular">
