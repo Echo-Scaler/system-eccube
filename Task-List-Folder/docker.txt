@@ -1,0 +1,76 @@
+Viewed docker-compose.yml:1-70
+Viewed docker-compose.mysql.yml:1-35
+Ran command: `docker compose -f docker-compose.yml -f docker-compose.mysql.yml ps`
+Ran command: `docker compose -f docker-compose.yml -f docker-compose.mysql.yml exec ec-cube bin/console --version`
+Ran command: `docker compose -f docker-compose.yml -f docker-compose.mysql.yml exec ec-cube bin/console doctrine:schema:validate`
+Ran command: `git status`
+
+ဤ EC-CUBE Project အား **Docker** ဖြင့် Run ရန် အောက်ပါအဆင့်များနှင့် Command များကို အသုံးပြုနိုင်ပါသည်။
+
+---
+
+### ၁။ Docker Containers စတင် Run ခြင်း (Start / Up)
+
+MySQL Database နှင့် Mailcatcher ပါဝင်သော Docker Containers များကို Background (`-d`) တွင် Run ရန်:
+
+```bash
+# MySQL + Mailcatcher + EC-CUBE containers များကို ဖွင့်ခြင်း
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml up -d
+```
+
+> **မှတ်ချက်:** ပထမဆုံးအကြိမ် Run လျှင် Docker Image များကို Download ဆွဲယူမည်ဖြစ်သဖြင့် မိနစ်အနည်းငယ် ကြာနိုင်ပါသည်။
+
+---
+
+### ၂။ ဝင်ရောက်ကြည့်ရှုနိုင်သော URLs (Web Access)
+
+Containers များ စတင်ပြီးပါက Browser မှ အောက်ပါ Link များအတိုင်း ဝင်ရောက်အသုံးပြုနိုင်ပါသည်:
+
+| Service | URL | အသေးစိတ် / Login |
+| :--- | :--- | :--- |
+| **EC-CUBE (Front / Admin)** | [http://localhost:8080/](http://localhost:8080/) | **Admin Path**: `/admin` (Default User: `admin` / Password: `password`) |
+| **Mailcatcher (Mail Testing)** | [http://localhost:1080/](http://localhost:1080/) | စနစ်မှ ပို့သော Email များကို စစ်ဆေးရန် Web UI |
+| **MySQL Database** | `localhost:13306` | **User**: `dbuser` / **Pass**: `secret` / **DB**: `eccubedb` |
+
+---
+
+### ၃။ Database Initializing (ပထမဆုံးအကြိမ် Database Install ပြုလုပ်ရန်)
+
+အကယ်၍ Database မရှိသေးပါက Container ထဲတွင် အောက်ပါ command ဖြင့် EC-CUBE အား Install ပြုလုပ်နိုင်ပါသည်:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml exec ec-cube bin/console eccube:install --no-interaction
+```
+
+---
+
+### ၄။ အသုံးများသော Docker Commands များ (Useful Docker Commands)
+
+#### (က) Container အခြေအနေ စစ်ဆေးခြင်း (Check Status)
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml ps
+```
+
+#### (ခ) Container Logs ကြည့်ရှုခြင်း (View Logs)
+```bash
+# အားလုံး၏ Log ကြည့်ရန်
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml logs -f
+
+# EC-CUBE Web Container သီးသန့် Log ကြည့်ရန်
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml logs -f ec-cube
+```
+
+#### (ဂ) Container ထဲတွင် Console Command Run ခြင်း (Run Console Commands)
+```bash
+# Cache ရှင်းလင်းရန်
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml exec ec-cube bin/console cache:clear
+```
+
+#### (ဃ) Container များကို ရပ်တန့်ခြင်း (Stop / Down)
+```bash
+# Container များကို ခေတ္တရပ်ရန်
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml stop
+
+# Container များကို အပြီးသတ် ပိတ်သိမ်းရန်
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml down
+```
