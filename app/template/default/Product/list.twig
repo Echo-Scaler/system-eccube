@@ -22,8 +22,14 @@ file that was distributed with this source code.
         }
         .ec-productCard__favorite-btn {
             width: 100%;
-            font-size: 12px;
-            padding: 6px 10px;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        .ec-productCard__favorite-btn:hover {
+            opacity: 0.9;
         }
     </style>
 {% endblock %}
@@ -126,6 +132,8 @@ file that was distributed with this source code.
                     } else if (data.require_login) {
                         window.location.href = data.login_url;
                     }
+                }).fail(function() {
+                    alert('お気に入りの更新に失敗しました。');
                 }).always(function() {
                     $btn.prop('disabled', false);
                 });
@@ -167,7 +175,7 @@ file that was distributed with this source code.
                                         href="{{ url('product_list') }}?category_id={{ Path.id }}">{{ Path.name }}</a>
                             </li>
                         {% endfor %}
-                    </li{% endif %}
+                    {% endif %}
                     {% if search_form.vars.value and search_form.vars.value.name %}
                         <li class="ec-topicpath__divider">|</li>
                         <li class="ec-topicpath__item">{{ 'front.product.search_result__keyword'|trans({ '%name%': search_form.vars.value.name }) }}</li>
@@ -256,9 +264,10 @@ file that was distributed with this source code.
 
                             {# Favorite Action Button on Product List #}
                             {% if BaseInfo.option_favorite_product %}
+                                {% set is_fav = is_favorite(Product) %}
                                 <div class="ec-productCard__favorite">
-                                    <button type="button" class="btn btn-outline-danger ec-productCard__favorite-btn ec-favorite-list-btn" data-product-id="{{ Product.id }}">
-                                        <i class="fa fa-heart"></i> <span class="fav-text">{{ 'front.product.add_favorite'|trans }}</span>
+                                    <button type="button" class="btn {% if is_fav %}btn-danger{% else %}btn-outline-danger{% endif %} ec-productCard__favorite-btn ec-favorite-list-btn" data-product-id="{{ Product.id }}">
+                                        <i class="fa fa-heart"></i> <span class="fav-text">{% if is_fav %}{{ 'front.product.add_favorite_alrady'|trans }}{% else %}{{ 'front.product.add_favorite'|trans }}{% endif %}</span>
                                     </button>
                                 </div>
                             {% endif %}
