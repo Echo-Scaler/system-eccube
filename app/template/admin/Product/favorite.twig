@@ -177,7 +177,7 @@ file that was distributed with this source code.
                                                     </div>
                                                     {% if Product.code_min %}
                                                         <div class="small text-muted">
-                                                            <i class="fa fa-barcode me-1"></i> {{ Product.code_min }}{% if Product.code_min != Product.code_max %} ～ {{ Product.code_max }}{% endif %}
+                                                            <i class="fa fa-barcode me-1"></i> {{ Product.code_min }}{% if Product.code_min != Product.code_max %}{{ 'admin.common.separator__range'|trans }}{{ Product.code_max }}{% endif %}
                                                         </div>
                                                     {% endif %}
                                                 </td>
@@ -185,12 +185,11 @@ file that was distributed with this source code.
                                                 <!-- Price -->
                                                 <td>
                                                     <div class="fw-bold text-dark">
-                                                        {{ Product.getPrice02IncTaxMin|price }}
-                                                        {% if Product.hasProductClass and Product.price02_min != Product.price02_max %}
-                                                            ～ {{ Product.getPrice02IncTaxMax|price }}
+                                                        {{ Product.price02_min|price }}
+                                                        {% if Product.price02_min != Product.price02_max %}
+                                                            {{ 'admin.common.separator__range'|trans }}{{ Product.price02_max|price }}
                                                         {% endif %}
                                                     </div>
-                                                    <small class="text-muted">(tax included)</small>
                                                 </td>
 
                                                 <!-- Favourite Counts -->
