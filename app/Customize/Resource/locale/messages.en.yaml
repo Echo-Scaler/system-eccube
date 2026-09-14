@@ -1,8 +1,11 @@
 admin.favorite.favorite_products: Favourite Products
-admin.product.favorite_list: Favourite Product List
+admin.product.favorite_list: Favourite Products List
 admin.product.favorite_management: Favourite Products Management
-admin.product.favorite.delete_complete: Favourite product has been deleted.
-admin.product.favorite.delete_error: Failed to delete favourite product.
+admin.product.favorite_count: Favourite Count
+admin.product.stat_total_favorites: Total Favorites
+admin.product.stat_total_favorited_products: Total Favorited Products
+admin.product.favorite.delete_complete: Favourite product records have been cleared.
+admin.product.favorite.delete_error: Failed to clear favourite product records.
 
 # Custom Product List
 admin.product.custom_product_list: Custom Product List
@@ -12,3 +15,4 @@ admin.product.stat_public_products: Published
 admin.product.stat_hidden_products: Hidden
 admin.product.stat_total_categories: Total Categories
 admin.product.no_products_message: No products matching the search criteria were found.
+

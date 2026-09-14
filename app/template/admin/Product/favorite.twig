@@ -10,19 +10,44 @@ file that was distributed with this source code.
 #}
 {% extends '@admin/default_frame.twig' %}
 
-{% set menus = ['favorite_product'] %}
+{% set menus = ['product', 'favorite_product'] %}
 
 {% block title %}{{ 'admin.favorite.favorite_products'|trans }}{% endblock %}
-{% block sub_title %}{{ 'admin.product.favorite_management'|trans }}{% endblock %}
+{% block sub_title %}{{ 'admin.product.product_management'|trans }}{% endblock %}
 
 {% block stylesheet %}
     <style>
         .fav-product-img {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .fav-product-img:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        .stat-card {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .fav-count-badge {
+            font-size: 0.95rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(255, 65, 108, 0.3);
         }
     </style>
 {% endblock %}
@@ -35,12 +60,15 @@ file that was distributed with this source code.
                 e.preventDefault();
                 var action = $(this).data('action');
                 var token = $(this).attr('token-for-anchor');
-                var favId = $(this).data('fav-id');
+                var productId = $(this).data('product-id');
+                var productName = $(this).data('product-name');
 
-                $('#deleteFavoriteModal').find('#favIdDisplay').text(favId);
+                $('#deleteFavoriteModal').find('#productIdDisplay').text(productId);
+                $('#deleteFavoriteModal').find('#productNameDisplay').text(productName);
                 var $form = $('#deleteFavoriteForm');
                 $form.attr('action', action);
-                $form.find('input[name="{{ constant('Eccube\\Common\\Constant::TOKEN_NAME') }}"]').val(token);
+                var tokenKey = '{{ constant("Eccube\\Common\\Constant::TOKEN_NAME") }}';
+                $form.find('input[name="' + tokenKey + '"]').val(token);
 
                 var modal = new bootstrap.Modal(document.getElementById('deleteFavoriteModal'));
                 modal.show();
@@ -54,109 +82,165 @@ file that was distributed with this source code.
         <div class="c-contentsArea__primaryCol">
             <div class="c-primaryCol">
 
-                <!-- Header Total Summary Badge -->
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <!-- Header Title & Info -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h4 class="mb-0 fw-bold text-dark">
+                        <h3 class="mb-1 fw-bold text-dark">
                             <i class="fa fa-heart text-danger me-2"></i>{{ 'admin.favorite.favorite_products'|trans }}
-                        </h4>
-                        <small class="text-muted">{{ 'admin.product.favorite_management'|trans }}</small>
+                        </h3>
+                        <p class="text-muted small mb-0">{{ 'admin.product.favorite_management'|trans }}</p>
                     </div>
-                    {% if pagination and pagination.totalItemCount > 0 %}
-                        <div>
-                            <span class="badge bg-primary fs-6 px-3 py-2">
-                                Total: {{ pagination.totalItemCount|number_format }} items
-                            </span>
-                        </div>
-                    {% endif %}
+                    <div>
+                        <a href="{{ url('admin_product') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fa fa-arrow-left me-1"></i> {{ 'admin.product.product_list'|trans }}
+                        </a>
+                    </div>
                 </div>
 
-                <!-- Favourite Products Bootstrap Table -->
+                <!-- Statistics Summary Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card stat-card bg-white p-3 border-start border-primary border-4">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3 text-primary">
+                                    <i class="fa fa-cube fa-2x"></i>
+                                </div>
+                                <div>
+                                    <span class="text-muted small d-block">{{ 'admin.product.stat_total_favorited_products'|trans }}</span>
+                                    <h4 class="mb-0 fw-bold text-dark">{{ total_favorited_products|number_format }} <small class="fs-6 text-muted">items</small></h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card stat-card bg-white p-3 border-start border-danger border-4">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3 text-danger">
+                                    <i class="fa fa-heart fa-2x"></i>
+                                </div>
+                                <div>
+                                    <span class="text-muted small d-block">{{ 'admin.product.stat_total_favorites'|trans }}</span>
+                                    <h4 class="mb-0 fw-bold text-dark">{{ total_favorites|number_format }} <small class="fs-6 text-muted">times</small></h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Favourite Products List Table -->
                 {% if pagination and pagination.totalItemCount > 0 %}
                     <div class="card rounded border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                            <h6 class="mb-0 fw-bold text-dark">
+                                <i class="fa fa-list me-2 text-secondary"></i>{{ 'admin.product.favorite_list'|trans }}
+                            </h6>
+                            <span class="badge bg-light text-dark border">
+                                Showing {{ pagination.getItemNumberPerPage * (page_no - 1) + 1 }} - {{ min(pagination.getItemNumberPerPage * page_no, pagination.totalItemCount) }} of {{ pagination.totalItemCount }} products
+                            </span>
+                        </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover table-striped align-middle mb-0">
+                                <table class="table table-hover align-middle mb-0">
                                     <thead class="table-light">
                                     <tr>
                                         <th class="ps-3 py-3" style="width: 70px;">ID</th>
-                                        <th class="py-3" style="width: 60px;">Image</th>
-                                        <th class="py-3">Product Name</th>
-                                        <th class="py-3">Customer Email</th>
-                                        <th class="py-3" style="width: 190px;">Created Date</th>
-                                        <th class="pe-3 py-3 text-end" style="width: 100px;">Action</th>
+                                        <th class="py-3" style="width: 80px;">{{ 'admin.product.image__short'|trans }}</th>
+                                        <th class="py-3">{{ 'admin.product.name'|trans }}</th>
+                                        <th class="py-3" style="width: 170px;">{{ 'admin.product.price'|trans }}</th>
+                                        <th class="py-3 text-center" style="width: 170px;">{{ 'admin.product.favorite_count'|trans }}</th>
+                                        <th class="py-3 text-center" style="width: 120px;">{{ 'admin.product.display_status__short'|trans }}</th>
+                                        <th class="pe-3 py-3 text-end" style="width: 160px;">{{ 'admin.common.action'|trans }}</th>
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {% for Favorite in pagination %}
-                                        {% set Product = Favorite.Product %}
-                                        {% set Customer = Favorite.Customer %}
-                                        <tr>
-                                            <!-- ID -->
-                                            <td class="ps-3 fw-bold text-muted">{{ Favorite.id }}</td>
+                                    {% for item in pagination %}
+                                        {% set Product = productMap[item.product_id]|default(null) %}
+                                        {% set favorite_count = item.favorite_count %}
+                                        {% if Product %}
+                                            <tr>
+                                                <!-- Product ID -->
+                                                <td class="ps-3 fw-bold text-muted">{{ Product.id }}</td>
 
-                                            <!-- Product Image -->
-                                            <td>
-                                                {% if Product %}
-                                                    <img class="fav-product-img" src="{{ asset(Product.main_list_image|no_image_product, 'save_image') }}" alt="{{ Product.name }}">
-                                                {% else %}
-                                                    <img class="fav-product-img" src="{{ asset(''|no_image_product, 'save_image') }}" alt="">
-                                                {% endif %}
-                                            </td>
+                                                <!-- Product Image -->
+                                                <td>
+                                                    <a href="{{ url('admin_product_product_edit', { id : Product.id }) }}">
+                                                        <img class="fav-product-img" src="{{ asset(Product.mainFileName|no_image_product, 'save_image') }}" alt="{{ Product.name }}">
+                                                    </a>
+                                                </td>
 
-                                            <!-- Product Name -->
-                                            <td>
-                                                {% if Product %}
+                                                <!-- Product Name & Code -->
+                                                <td>
                                                     <div>
-                                                        <a class="fw-bold text-decoration-none text-primary" href="{{ url('admin_product_product_edit', {id: Product.id}) }}" target="_blank">
-                                                            {{ Product.name }} <i class="fa fa-external-link small text-muted"></i>
+                                                        <a class="fw-bold text-decoration-none text-dark" href="{{ url('admin_product_product_edit', { id : Product.id }) }}">
+                                                            {{ Product.name }}
                                                         </a>
                                                     </div>
-                                                    <div class="small text-muted">
-                                                        ID: {{ Product.id }}
-                                                        {% if Product.code_min %} | Code: {{ Product.code_min }}{% endif %}
-                                                        | Price: {{ Product.getPrice02IncTaxMin|price }}
-                                                    </div>
-                                                {% else %}
-                                                    <span class="text-danger fw-bold">[Deleted Product]</span>
-                                                {% endif %}
-                                            </td>
+                                                    {% if Product.code_min %}
+                                                        <div class="small text-muted">
+                                                            <i class="fa fa-barcode me-1"></i> {{ Product.code_min }}{% if Product.code_min != Product.code_max %} ～ {{ Product.code_max }}{% endif %}
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
 
-                                            <!-- Customer Email -->
-                                            <td>
-                                                {% if Customer %}
-                                                    <div>
-                                                        <a class="fw-bold text-decoration-none text-dark" href="{{ url('admin_customer_edit', {id: Customer.id}) }}" target="_blank">
-                                                            {{ Customer.email }} <i class="fa fa-external-link small text-muted"></i>
+                                                <!-- Price -->
+                                                <td>
+                                                    <div class="fw-bold text-dark">
+                                                        {{ Product.getPrice02IncTaxMin|price }}
+                                                        {% if Product.hasProductClass and Product.price02_min != Product.price02_max %}
+                                                            ～ {{ Product.getPrice02IncTaxMax|price }}
+                                                        {% endif %}
+                                                    </div>
+                                                    <small class="text-muted">(tax included)</small>
+                                                </td>
+
+                                                <!-- Favourite Counts -->
+                                                <td class="text-center">
+                                                    <span class="fav-count-badge">
+                                                        <i class="fa fa-heart me-1"></i> {{ favorite_count|number_format }}
+                                                    </span>
+                                                </td>
+
+                                                <!-- Status -->
+                                                <td class="text-center">
+                                                    {% if Product.Status %}
+                                                        {% if Product.Status.id == constant('Eccube\\Entity\\Master\\ProductStatus::DISPLAY_SHOW') %}
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-2 py-1">
+                                                                <i class="fa fa-check-circle me-1"></i> {{ Product.Status.name }}
+                                                            </span>
+                                                        {% elseif Product.Status.id == constant('Eccube\\Entity\\Master\\ProductStatus::DISPLAY_HIDE') %}
+                                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-2 py-1">
+                                                                {{ Product.Status.name }}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">
+                                                                {{ Product.Status.name }}
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </td>
+
+                                                <!-- Actions -->
+                                                <td class="pe-3 text-end">
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <a href="{{ url('admin_product_product_edit', { id : Product.id }) }}" class="btn btn-outline-primary" title="{{ 'admin.common.edit'|trans }}">
+                                                            <i class="fa fa-pencil"></i>
                                                         </a>
+                                                        <a href="{{ url('product_detail', { id : Product.id }) }}" target="_blank" class="btn btn-outline-secondary" title="View in store">
+                                                            <i class="fa fa-external-link"></i>
+                                                        </a>
+                                                        <button type="button"
+                                                                class="btn btn-outline-danger btn-delete-fav"
+                                                                {{ csrf_token_for_anchor() }}
+                                                                data-action="{{ url('admin_product_favorite_delete', {id: Product.id}) }}"
+                                                                data-product-id="{{ Product.id }}"
+                                                                data-product-name="{{ Product.name }}"
+                                                                title="Clear favorites for this product">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
                                                     </div>
-                                                    <div class="small text-muted">
-                                                        {{ Customer.name01 }} {{ Customer.name02 }} (ID: {{ Customer.id }})
-                                                    </div>
-                                                {% else %}
-                                                    <span class="text-danger">[Deleted / Withdrawn Customer]</span>
-                                                {% endif %}
-                                            </td>
-
-                                            <!-- Created Date -->
-                                            <td>
-                                                <span class="badge bg-light text-dark border">
-                                                    <i class="fa fa-calendar me-1 text-muted"></i> {{ Favorite.create_date|date_format('Y-m-d H:i') }}
-                                                </span>
-                                            </td>
-
-                                            <!-- Action (Delete) -->
-                                            <td class="pe-3 text-end">
-                                                <button type="button"
-                                                        class="btn btn-sm btn-outline-danger btn-delete-fav"
-                                                        {{ csrf_token_for_anchor() }}
-                                                        data-action="{{ url('admin_product_favorite_delete', {id: Favorite.id}) }}"
-                                                        data-fav-id="{{ Favorite.id }}"
-                                                        title="Delete from favorites">
-                                                    <i class="fa fa-trash me-1"></i> Delete
-                                                </button>
-                                            </td>
-                                        </tr>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
                                     {% endfor %}
                                     </tbody>
                                 </table>
@@ -174,9 +258,11 @@ file that was distributed with this source code.
                     <!-- Empty State Card -->
                     <div class="card rounded border-0 shadow-sm mb-4">
                         <div class="card-body text-center py-5">
-                            <i class="fa fa-heart-o fa-3x text-muted mb-3 d-block"></i>
-                            <h5 class="text-muted fw-bold">No favourite products registered yet.</h5>
-                            <p class="text-muted small">When customers add products to their favorites from the shop, they will appear in this list.</p>
+                            <div class="mb-3 text-danger opacity-50">
+                                <i class="fa fa-heart-o fa-4x"></i>
+                            </div>
+                            <h5 class="text-dark fw-bold mb-2">No favourite products registered yet.</h5>
+                            <p class="text-muted small mb-0">When customers add products to their favorites in the shop, they will be listed here with their favorite counts.</p>
                         </div>
                     </div>
                 {% endif %}
@@ -194,7 +280,12 @@ file that was distributed with this source code.
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete Favourite ID: <strong id="favIdDisplay"></strong>?</p>
+                    <p class="mb-2">Are you sure you want to clear all favorite records for:</p>
+                    <div class="alert alert-light border">
+                        <strong>ID:</strong> <span id="productIdDisplay"></span><br>
+                        <strong>Product:</strong> <span id="productNameDisplay" class="text-primary"></span>
+                    </div>
+                    <small class="text-muted">This will remove this product from all customers' favorite lists.</small>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-ec-sub" data-bs-dismiss="modal">{{ 'admin.common.cancel'|trans }}</button>
@@ -208,3 +299,4 @@ file that was distributed with this source code.
         </div>
     </div>
 {% endblock %}
+
