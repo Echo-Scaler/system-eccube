@@ -20,6 +20,7 @@ use Eccube\Repository\ProductRepository;
 use Knp\Component\Pager\PaginatorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
 /**
@@ -123,6 +124,86 @@ class FavoriteController extends AbstractController
             'total_favorites' => $total_favorites,
             'total_favorited_products' => $total_favorited_products,
         ];
+    }
+
+    /**
+     * Admin Favorite CSV Export (Product/Order ပုံစံတူ StreamedResponse Logic)
+     *
+     * @Route("/%eccube_admin_route%/product/favorite/export", name="admin_product_favorite_export", methods={"GET", "POST"})
+     *
+     * @param Request $request
+     * @return StreamedResponse
+     */
+    public function exportCsv(Request $request)
+    {
+        // ၁။ Timeout နှင့် SQL Logger ကို ပိတ်ခြင်း (Core Product/Order Standard)
+        set_time_limit(0);
+        $this->entityManager->getConfiguration()->setSQLLogger(null);
+
+        // ၂။ StreamedResponse ဖြင့် Memory သက်သာစေရန် Chunk/Stream ထုတ်ယူခြင်း
+        $response = new StreamedResponse();
+        $response->setCallback(function () {
+            // PHP Output Stream ဖွင့်လှစ်ခြင်း
+            $handle = fopen('php://output', 'w');
+
+            // Excel တွင် မြန်မာ/ဂျပန် စာလုံးများ မပျက်စေရန် UTF-8 BOM ထည့်သွင်းခြင်း
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            // CSV Header (ခေါင်းစဉ်တန်း)
+            $headers = [
+                'Product ID',
+                'Product Code',
+                'Product Name',
+                'Price (Inc Tax)',
+                'Favorite Count',
+            ];
+            fputcsv($handle, $headers);
+
+            // Product Entity ပါ တစ်ခါတည်း JOIN ဆွဲယူခြင်း (N+1 Query ပြဿနာ မဖြစ်စေရန်)
+            $qb = $this->entityManager->createQueryBuilder();
+            $qb->select('p AS product, COUNT(cfp.id) AS favorite_count')
+                ->from(CustomerFavoriteProduct::class, 'cfp')
+                ->innerJoin('cfp.Product', 'p')
+                ->groupBy('p.id')
+                ->orderBy('favorite_count', 'DESC')
+                ->addOrderBy('p.id', 'DESC');
+
+            $results = $qb->getQuery()->getResult();
+
+            // Record တစ်ခုချင်းစီကို Stream အဖြစ် Output ထုတ်ခြင်း
+            foreach ($results as $row) {
+                /** @var \Eccube\Entity\Product $product */
+                $product = $row['product'];
+                if (!$product) {
+                    continue;
+                }
+
+                $csvRow = [
+                    $product->getId(),
+                    $product->getCodeMin() ?: '-',
+                    $product->getName(),
+                    $product->getPrice02IncTaxMin(),
+                    $row['favorite_count'],
+                ];
+
+                fputcsv($handle, $csvRow);
+                flush(); // Buffer ရှင်းထုတ်ခြင်း
+            }
+
+            fclose($handle);
+        });
+
+        // ၃။ File Name နှင့် Header သတ်မှတ်ခြင်း
+        $now = new \DateTime();
+        $filename = 'favorite_products_' . $now->format('YmdHis') . '.csv';
+
+        $response->headers->set('Content-Type', 'application/octet-stream');
+        $response->headers->set('Content-Disposition', 'attachment; filename=' . $filename);
+
+        // Core Product/Order အတိုင်း Log မှတ်တမ်းတင်ခြင်း
+        log_info('Favorite CSV Export Completed', [$filename]);
+
+        return $response;
     }
 
     /**
