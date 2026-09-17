@@ -242,22 +242,23 @@ class FavoriteController extends AbstractController
     }
 
     /**
-     * Admin Favorite CSV Export (Product/Order ပုံစံတူ StreamedResponse Logic)
+     * Admin Favorite CSV Export (Core EC-CUBE & Symfony Standard StreamedResponse Logic)
      *
      * @Route("/%eccube_admin_route%/product/favorite/export", name="admin_product_favorite_export", methods={"GET", "POST"})
      *
      * @param Request $request
+     * @param PaginatorInterface $paginator
      * @return StreamedResponse
      */
-    public function exportCsv(Request $request)
+    public function exportCsv(Request $request, PaginatorInterface $paginator)
     {
-        // Timeout နှင့် SQL Logger ကို ပိတ်ခြင်း
+        // Timeout နှင့် SQL Logger ကို ပိတ်ခြင်း (Core Standard)
         set_time_limit(0);
         $this->entityManager->getConfiguration()->setSQLLogger(null);
 
         // StreamedResponse ဖြင့် Memory သက်သာစေရန် Chunk/Stream ထုတ်ယူခြင်း
         $response = new StreamedResponse();
-        $response->setCallback(function () {
+        $response->setCallback(function () use ($paginator) {
             $handle = fopen('php://output', 'w');
             // Excel UTF-8 BOM ထည့်သွင်းခြင်း
             fwrite($handle, "\xEF\xBB\xBF");
@@ -274,25 +275,36 @@ class FavoriteController extends AbstractController
                 ->orderBy('favorite_count', 'DESC')
                 ->addOrderBy('p.id', 'DESC');
 
-            $results = $qb->getQuery()->getResult();
+            // Chunked Pagination (ဒေတာ ၁၀၀ စီ ခွဲထုတ်၍ Memory Leak မဖြစ်အောင် Doctrine Clear ပြုလုပ်ခြင်း)
+            $page = 1;
+            $limit = 100;
 
-            foreach ($results as $row) {
-                /** @var \Eccube\Entity\Product $product */
-                $product = $row['product'];
-                if (!$product) {
-                    continue;
+            while ($results = $paginator->paginate($qb, $page, $limit)) {
+                if (count($results) === 0) {
+                    break;
                 }
 
-                $csvRow = [
-                    $product->getId(),
-                    $product->getCodeMin() ?: '-',
-                    $product->getName(),
-                    $product->getPrice02IncTaxMin(),
-                    $row['favorite_count'],
-                ];
+                foreach ($results as $row) {
+                    /** @var \Eccube\Entity\Product $product */
+                    $product = $row['product'];
+                    if (!$product) {
+                        continue;
+                    }
 
-                fputcsv($handle, $csvRow);
-                flush();
+                    $csvRow = [
+                        $product->getId(),
+                        $product->getCodeMin() ?: '-',
+                        $product->getName(),
+                        $product->getPrice02IncTaxMin(),
+                        $row['favorite_count'],
+                    ];
+
+                    fputcsv($handle, $csvRow);
+                    flush();
+                }
+
+                $this->entityManager->clear();
+                $page++;
             }
 
             fclose($handle);
@@ -301,8 +313,8 @@ class FavoriteController extends AbstractController
         $now = new \DateTime();
         $filename = 'favorite_products_' . $now->format('YmdHis') . '.csv';
 
-        $response->headers->set('Content-Type', 'application/octet-stream');
-        $response->headers->set('Content-Disposition', 'attachment; filename=' . $filename);
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
         log_info('Favorite CSV Export Completed', [$filename]);
 

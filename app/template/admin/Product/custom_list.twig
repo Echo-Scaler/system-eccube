@@ -303,10 +303,15 @@ file that was distributed with this source code.
                                             </td>
 
                                             <!-- Price -->
-                                            <td class="text-end fw-bold text-dark">
-                                                {{ Product.getPrice02IncTaxMin|price }}
-                                                {% if Product.getPrice02IncTaxMin != Product.getPrice02IncTaxMax %}
-                                                    <div class="small text-muted">~ {{ Product.getPrice02IncTaxMax|price }}</div>
+                                            <td class="text-end fw-bold text-dark text-nowrap">
+                                                {% if Product.hasProductClass %}
+                                                    {% if Product.getPrice02Min == Product.getPrice02Max %}
+                                                        {{ Product.getPrice02IncTaxMin|price }}
+                                                    {% else %}
+                                                        {{ Product.getPrice02IncTaxMin|price }} <span class="text-muted fw-normal">～</span> {{ Product.getPrice02IncTaxMax|price }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    {{ Product.getPrice02IncTaxMin|price }}
                                                 {% endif %}
                                             </td>
 

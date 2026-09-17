@@ -127,14 +127,15 @@ class FavoriteController extends AbstractController
     }
 
     /**
-     * Admin Favorite CSV Export (Product/Order ပုံစံတူ StreamedResponse Logic)
+     * Admin Favorite CSV Export (Core EC-CUBE & Symfony Standard StreamedResponse Logic)
      *
      * @Route("/%eccube_admin_route%/product/favorite/export", name="admin_product_favorite_export", methods={"GET", "POST"})
      *
      * @param Request $request
+     * @param PaginatorInterface $paginator
      * @return StreamedResponse
      */
-    public function exportCsv(Request $request)
+    public function exportCsv(Request $request, PaginatorInterface $paginator)
     {
         // ၁။ Timeout နှင့် SQL Logger ကို ပိတ်ခြင်း (Core Product/Order Standard)
         set_time_limit(0);
@@ -142,7 +143,7 @@ class FavoriteController extends AbstractController
 
         // ၂။ StreamedResponse ဖြင့် Memory သက်သာစေရန် Chunk/Stream ထုတ်ယူခြင်း
         $response = new StreamedResponse();
-        $response->setCallback(function () {
+        $response->setCallback(function () use ($paginator) {
             // PHP Output Stream ဖွင့်လှစ်ခြင်း
             $handle = fopen('php://output', 'w');
 
@@ -159,46 +160,68 @@ class FavoriteController extends AbstractController
             ];
             fputcsv($handle, $headers);
 
-            // Product Entity ပါ တစ်ခါတည်း JOIN ဆွဲယူခြင်း (N+1 Query ပြဿနာ မဖြစ်စေရန်)
+            // Favorite ပြုလုပ်ထားသော Product ID နှင့် Count များကို Group By ဖြင့် ဆွဲယူခြင်း (MySQL 8 ONLY_FULL_GROUP_BY Safe)
             $qb = $this->entityManager->createQueryBuilder();
-            $qb->select('p AS product, COUNT(cfp.id) AS favorite_count')
+            $qb->select('IDENTITY(cfp.Product) AS product_id, COUNT(cfp.id) AS favorite_count')
                 ->from(CustomerFavoriteProduct::class, 'cfp')
-                ->innerJoin('cfp.Product', 'p')
-                ->groupBy('p.id')
+                ->groupBy('cfp.Product')
                 ->orderBy('favorite_count', 'DESC')
-                ->addOrderBy('p.id', 'DESC');
+                ->addOrderBy('product_id', 'DESC');
 
-            $results = $qb->getQuery()->getResult();
+            $rawList = $qb->getQuery()->getResult();
 
-            // Record တစ်ခုချင်းစီကို Stream အဖြစ် Output ထုတ်ခြင်း
-            foreach ($results as $row) {
-                /** @var \Eccube\Entity\Product $product */
-                $product = $row['product'];
-                if (!$product) {
-                    continue;
+            if (!empty($rawList)) {
+                $limit = 100;
+                $total = count($rawList);
+
+                for ($offset = 0; $offset < $total; $offset += $limit) {
+                    $chunk = array_slice($rawList, $offset, $limit);
+                    $productIds = array_column($chunk, 'product_id');
+                    $products = $this->productRepository->findBy(['id' => $productIds]);
+                    $productMap = [];
+                    foreach ($products as $p) {
+                        $productMap[$p->getId()] = $p;
+                    }
+
+                    foreach ($chunk as $item) {
+                        $pId = (int)$item['product_id'];
+                        if (!isset($productMap[$pId])) {
+                            continue;
+                        }
+                        /** @var \Eccube\Entity\Product $product */
+                        $product = $productMap[$pId];
+
+                        // ဈေးနှုန်း အကွာအဝေး ရှိပါက 商品一覧 (Product List) အတိုင်း Min ～ Max ပုံစံ Format ပြုလုပ်ခြင်း
+                        $priceFormatted = $product->getPrice02IncTaxMin();
+                        if ($product->hasProductClass() && $product->getPrice02Min() != $product->getPrice02Max()) {
+                            $priceFormatted = $product->getPrice02IncTaxMin() . ' ～ ' . $product->getPrice02IncTaxMax();
+                        }
+
+                        $csvRow = [
+                            $product->getId(),
+                            $product->getCodeMin() ?: '-',
+                            $product->getName(),
+                            $priceFormatted,
+                            $item['favorite_count'],
+                        ];
+
+                        fputcsv($handle, $csvRow);
+                        flush();
+                    }
+
+                    $this->entityManager->clear();
                 }
-
-                $csvRow = [
-                    $product->getId(),
-                    $product->getCodeMin() ?: '-',
-                    $product->getName(),
-                    $product->getPrice02IncTaxMin(),
-                    $row['favorite_count'],
-                ];
-
-                fputcsv($handle, $csvRow);
-                flush(); // Buffer ရှင်းထုတ်ခြင်း
             }
 
             fclose($handle);
         });
 
-        // ၃။ File Name နှင့် Header သတ်မှတ်ခြင်း
+        // ၄။ File Name နှင့် Header သတ်မှတ်ခြင်း
         $now = new \DateTime();
         $filename = 'favorite_products_' . $now->format('YmdHis') . '.csv';
 
-        $response->headers->set('Content-Type', 'application/octet-stream');
-        $response->headers->set('Content-Disposition', 'attachment; filename=' . $filename);
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
         // Core Product/Order အတိုင်း Log မှတ်တမ်းတင်ခြင်း
         log_info('Favorite CSV Export Completed', [$filename]);
