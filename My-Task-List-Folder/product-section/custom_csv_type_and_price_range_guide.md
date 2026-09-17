@@ -331,23 +331,154 @@ class CustomProductCsvController extends AbstractController
 
 ---
 
-### အပိုင်း (၅) - Event Subscriber ဖြင့် Price Range Logic ကို ချိတ်ဆက်ခြင်း (Alternative Hook Way)
+### အပိုင်း (၄) - Custom Repository နှင့် Doctrine Migration အသုံးပြုခြင်း (Best Practice Standard)
 
-အကယ်၍ မူရင်း Core Product CSV (`/admin/product/export` - Type 1) တွင်လည်း ဈေးနှုန်း အကွာအဝေးကို Product List အတိုင်း ပြောင်းလဲလိုပါက Event Subscriber ဖြင့် အောက်ပါအတိုင်း ချိတ်ဆက်နိုင်ပါသည်:
+#### အဆင့် ၄.၁: Custom Repository ဖြင့် Database Queries များကို ခွဲထုတ်ရေးသားခြင်း (Repository Pattern)
+Controller ထဲတွင် `$entityManager->createQueryBuilder()` ကို တိုက်ရိုက် ရေးသားမည့်အစား Symfony Best Practice အရ သီးသန့် Repository Method ဖြင့် ရေးသားပါသည်:
 
-**တည်နေရာဖိုင်:** `app/Customize/EventListener/ProductCsvExportSubscriber.php`
+**တည်နေရာဖိုင်:** `app/Customize/Repository/CustomProductRepository.php`
 
 ```php
 <?php
 
-namespace Customize\EventListener;
+namespace Customize\Repository;
 
-use Eccube\Event\EccubeEvents;
-use Eccube\Event\EventArgs;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Doctrine\ORM\QueryBuilder;
+use Doctrine\Persistence\ManagerRegistry;
+use Eccube\Entity\Product;
+use Eccube\Repository\AbstractRepository;
 
-class ProductCsvExportSubscriber implements EventSubscriberInterface
+class CustomProductRepository extends AbstractRepository
 {
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, Product::class);
+    }
+
+    /**
+     * Favorite အများဆုံး ကုန်ပစ္စည်းများ စာရင်းနှင့် CSV Export အတွက် QueryBuilder
+     */
+    public function getQueryBuilderForFavoriteCsv(): QueryBuilder
+    {
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.CustomerFavoriteProducts', 'cfp')
+            ->groupBy('p.id')
+            ->orderBy('COUNT(cfp.id)', 'DESC')
+            ->addOrderBy('p.id', 'DESC');
+    }
+}
+```
+
+#### အဆင့် ၄.၂: Doctrine Migration ဖိုင်ဖြင့် Database Version Control ပြုလုပ်ခြင်း
+Database ထဲသို့ Raw SQL များ လက်ဖြင့် ထည့်သွင်းမည့်အစား Team Development နှင့် Deployment များတွင် အလိုအလျောက် အဆင်ပြေစေရန် Migration ဖိုင်ဖြင့် ရေးသားပါသည်:
+
+**တည်နေရာဖိုင်:** `app/DoctrineMigrations/Version20260917233000.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace DoctrineMigrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+final class Version20260917233000 extends AbstractMigration
+{
+    public function up(Schema $schema): void
+    {
+        // ၁။ mtb_csv_type တွင် Custom CSV Type (ID = 8) ထည့်သွင်းခြင်း
+        if ($schema->hasTable('mtb_csv_type')) {
+            $typeExists = (int) $this->connection->fetchOne("SELECT COUNT(*) FROM mtb_csv_type WHERE id = 8");
+            if ($typeExists === 0) {
+                $this->addSql("INSERT INTO mtb_csv_type (id, name, sort_no, discriminator_type) VALUES (8, 'お気に入り商品 CSV', 8, 'csvtype')");
+            }
+        }
+
+        // ၂။ dtb_csv တွင် Output Columns များ ထည့်သွင်းခြင်း
+        if ($schema->hasTable('dtb_csv')) {
+            $csvColsExists = (int) $this->connection->fetchOne("SELECT COUNT(*) FROM dtb_csv WHERE csv_type_id = 8");
+            if ($csvColsExists === 0) {
+                $this->addSql("INSERT INTO dtb_csv (csv_type_id, entity_name, field_name, disp_name, sort_no, enabled, create_date, update_date, discriminator_type) VALUES (8, 'Eccube\\\\Entity\\\\Product', 'id', '商品ID', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'csv')");
+                $this->addSql("INSERT INTO dtb_csv (csv_type_id, entity_name, field_name, disp_name, sort_no, enabled, create_date, update_date, discriminator_type) VALUES (8, 'Eccube\\\\Entity\\\\Product', 'code_min', '商品コード', 2, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'csv')");
+                $this->addSql("INSERT INTO dtb_csv (csv_type_id, entity_name, field_name, disp_name, sort_no, enabled, create_date, update_date, discriminator_type) VALUES (8, 'Eccube\\\\Entity\\\\Product', 'name', '商品名', 3, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'csv')");
+                $this->addSql("INSERT INTO dtb_csv (csv_type_id, entity_name, field_name, disp_name, sort_no, enabled, create_date, update_date, discriminator_type) VALUES (8, 'Eccube\\\\Entity\\\\Product', 'price02_inc_tax_min', '販売価格(税込)', 4, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'csv')");
+                $this->addSql("INSERT INTO dtb_csv (csv_type_id, entity_name, field_name, disp_name, sort_no, enabled, create_date, update_date, discriminator_type) VALUES (8, 'Eccube\\\\Entity\\\\Product', 'favorite_count', 'お気に入り数', 5, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'csv')");
+                $this->addSql("INSERT INTO dtb_csv (csv_type_id, entity_name, field_name, disp_name, sort_no, enabled, create_date, update_date, discriminator_type) VALUES (8, 'Eccube\\\\Entity\\\\Product', 'stock_min', '在庫数', 6, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'csv')");
+                $this->addSql("INSERT INTO dtb_csv (csv_type_id, entity_name, field_name, disp_name, sort_no, enabled, create_date, update_date, discriminator_type) VALUES (8, 'Eccube\\\\Entity\\\\Product', 'create_date', '登録日', 7, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'csv')");
+            }
+        }
+    }
+
+    public function down(Schema $schema): void
+    {
+        if ($schema->hasTable('dtb_csv')) {
+            $this->addSql("DELETE FROM dtb_csv WHERE csv_type_id = 8");
+        }
+        if ($schema->hasTable('mtb_csv_type')) {
+            $this->addSql("DELETE FROM mtb_csv_type WHERE id = 8");
+        }
+    }
+}
+```
+
+---
+
+### အပိုင်း (၅) - Admin Setting အတိုင်း Export ထုတ်ပေးသော Controller နမူနာ
+**တည်နေရာဖိုင်:** `app/Customize/Controller/Admin/Product/FavoriteController.php`
+
+```php
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        set_time_limit(0);
+        $this->entityManager->getConfiguration()->setSQLLogger(null);
+
+        $response = new StreamedResponse();
+        $response->setCallback(function () use ($request) {
+            // ၁။ Custom CSV Type ID 8 ဖြင့် Initialize လုပ်ခြင်း
+            $this->csvExportService->initCsvType(CustomCsvType::CSV_TYPE_FAVORITE_PRODUCT);
+
+            // ၂။ Custom Repository မှ QueryBuilder ခေါ်ယူခြင်း
+            $qb = $this->customProductRepository->getQueryBuilderForFavoriteCsv();
+            $this->csvExportService->setExportQueryBuilder($qb);
+
+            // ၃။ Admin Setting (dtb_csv) အတိုင်း Header ထုတ်ပေးခြင်း
+            $this->csvExportService->exportHeader();
+
+            // ၄။ Data Rows များကို Output ထုတ်ပေးခြင်း
+            $this->csvExportService->exportData(function (Product $Product, CsvExportService $csvService) use ($request) {
+                $Csvs = $csvService->getCsvs();
+                $row = [];
+
+                foreach ($Csvs as $Csv) {
+                    $fieldName = $Csv->getFieldName();
+                    if ($fieldName === 'price02_inc_tax_min') {
+                        if ($Product->hasProductClass() && $Product->getPrice02Min() != $Product->getPrice02Max()) {
+                            $value = number_format($Product->getPrice02IncTaxMin()) . ' ～ ' . number_format($Product->getPrice02IncTaxMax());
+                        } else {
+                            $value = number_format($Product->getPrice02IncTaxMin());
+                        }
+                    } elseif ($fieldName === 'favorite_count') {
+                        $value = count($Product->getCustomerFavoriteProducts());
+                    } elseif ($fieldName === 'stock_min') {
+                        $value = $Product->getStockMin() !== null ? $Product->getStockMin() : '無制限';
+                    } else {
+                        $value = $csvService->getData($Csv, $Product);
+                    }
+                    $row[] = $value;
+                }
+                $csvService->fputcsv($row);
+            });
+        });
+
+        $filename = 'favorite_products_' . (new \DateTime())->format('YmdHis') . '.csv';
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+
+        return $response;
+    }
+```
     public static function getSubscribedEvents()
     {
         return [
