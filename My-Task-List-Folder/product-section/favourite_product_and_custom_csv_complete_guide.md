@@ -1,7 +1,7 @@
 # EC-CUBE 4.3.1 - Favourite Products Management & Custom CSV Type Implementation Master Guide
-## (ဝယ်ယူသူ အကြိုက်ဆုံး ကုန်ပစ္စည်းများ စာရင်း၊ CSV Export နှင့် Store CSV Output Settings ချိတ်ဆက်ခြင်း အပြည့်အစုံ လမ်းညွှန်)
+## (ဝယ်ယူသူ အကြိုက်ဆုံး ကုန်ပစ္စည်းများ စာရင်း၊ Search Filters၊ CSV Export နှင့် Store CSV Output Settings ချိတ်ဆက်ခြင်း အပြည့်အစုံ လမ်းညွှန်)
 
-ဤစာရွက်စာတမ်းသည် EC-CUBE 4.3.1 (Symfony 5.4 Base) တွင် **(၁) ဝယ်ယူသူများ အကြိုက်ဆုံး ကုန်ပစ္စည်းများ (Favourite Products) စာရင်းကို Admin Panel တွင် ဖော်ပြခြင်း**၊ **(၂) အဆိုပါ စာရင်းအား Standard CsvExportService ဖြင့် CSV Download ထုတ်ယူခြင်း** နှင့် **(၃) Admin Shop Settings (`/admin/setting/shop/csv`) ရှိ CSV Type Dropdown တွင် Custom CSV Type အသစ်အဖြစ် ထည့်သွင်း၍ Columns များကို UI မှ စိတ်ကြိုက် စီမံခန့်ခွဲနိုင်စေခြင်း** တို့ကို စတင်တည်ဆောက်ပုံမှ ပြီးစီးသည်အထိ အတွေ့အကြုံ (၆) လရှိ Junior Developer များ အလွယ်တကူ လိုက်နာနားလည်နိုင်စေရန် မြန်မာဘာသာဖြင့် အသေးစိတ် ရေးသားထားသော လမ်းညွှန် ဖြစ်ပါသည်။
+ဤစာရွက်စာတမ်းသည် EC-CUBE 4.3.1 (Symfony 5.4 Base) တွင် **(၁) ဝယ်ယူသူများ အကြိုက်ဆုံး ကုန်ပစ္စည်းများ (Favourite Products) စာရင်းကို Admin Panel တွင် ဖော်ပြခြင်း**၊ **(၂) Product ID၊ Product Name၊ Customer Name နှင့် Favorite Counts (Range) ဖြင့် စစ်ထုတ်ရှာဖွေနိုင်သော Search Filters စနစ်**၊ **(၃) အဆိုပါ စာရင်းအား Standard CsvExportService ဖြင့် CSV Download ထုတ်ယူခြင်း** နှင့် **(၄) Admin Shop Settings (`/admin/setting/shop/csv`) ရှိ CSV Type Dropdown တွင် Custom CSV Type အသစ်အဖြစ် ထည့်သွင်း၍ Columns များကို UI မှ စိတ်ကြိုက် စီမံခန့်ခွဲနိုင်စေခြင်း** တို့ကို စတင်တည်ဆောက်ပုံမှ ပြီးစီးသည်အထိ အတွေ့အကြုံ (၆) လရှိ Junior Developer များ အလွယ်တကူ လိုက်နာနားလည်နိုင်စေရန် မြန်မာဘာသာဖြင့် အသေးစိတ် ရေးသားထားသော လမ်းညွှန် ဖြစ်ပါသည်။
 
 ---
 
@@ -22,17 +22,19 @@ flowchart TD
     end
 
     subgraph Backend["Backend Layer (Symfony/EC-CUBE)"]
+        Form["SearchFavoriteProductType.php<br/>(ID, Name, Customer, Fav Range)"]
         Repo["FavouriteProductRepository.php<br/>(getFavouriteDb QueryBuilder)"]
         Ctrl["FavouriteProductController.php<br/>- index Action (Pagination & Search)<br/>- export Action (Streaming CSV)"]
         Service["CsvExportService<br/>(initCsvType / exportHeader / exportData)"]
     end
 
     subgraph UI["Admin UI (Twig Template)"]
-        View["product_favourite.twig<br/>- Products List Table (No Action Column)<br/>- Search Filter Card (ID, Name, Customer, Fav Counts)<br/>- Price Range (Min ～ Max)<br/>- CSV Download & Settings Buttons"]
+        View["product_favourite.twig<br/>- Search Filter Card (ID, Name, Customer, Fav Counts)<br/>- Products List Table (No Action Column)<br/>- Price Range (Min ～ Max)<br/>- CSV Download & Settings Buttons"]
         CsvSetting["/admin/setting/shop/csv/20<br/>(Store CSV Column Configuration)"]
     end
 
     Nav --> Ctrl
+    Ctrl --> Form
     Ctrl --> Repo --> Prod
     Ctrl --> Service --> Dtb
     Ctrl --> View
@@ -51,8 +53,8 @@ flowchart TD
 | :---: | :--- | :---: | :--- |
 | **၁** | `app/DoctrineMigrations/Version20260917083632.php` | Doctrine Migration | Database ၏ `mtb_csv_type` (ID: 20) နှင့် `dtb_csv` Default Columns (၆) ခုကို စနစ်တကျ ထည့်သွင်းပေးခြင်း။ |
 | **၂** | `app/Customize/Constant/CustomCsvType.php` | PHP Class (Constant) | CSV Type ID ကို Hardcode မဖြစ်စေရန် `CSV_TYPE_FAVOURITE_PRODUCT = 20` ဟု သတ်မှတ်ပေးခြင်း။ |
-| **၃** | `app/Customize/Repository/FavouriteProductRepository.php` | Doctrine Repository | Favorite အများဆုံး ကုန်ပစ္စည်းများကို MySQL 8 `ONLY_FULL_GROUP_BY` safe ဖြစ်သော Subquery Sorting ဖြင့် ဆွဲထုတ်ပေးသော QueryBuilder။ |
-| **၄** | `app/Customize/Form/Type/Admin/SearchFavoriteProductType.php` | Symfony Form Type | Product ID, Name, Customer Name, Favorite Count Range Search Fields များ တည်ဆောက်ခြင်း။ |
+| **၃** | `app/Customize/Form/Type/Admin/SearchFavoriteProductType.php` | Symfony Form Type | Product ID, Name, Customer Name, Favorite Count Range Search Fields များ တည်ဆောက်ခြင်း။ |
+| **၄** | `app/Customize/Repository/FavouriteProductRepository.php` | Doctrine Repository | Favorite အများဆုံး ကုန်ပစ္စည်းများကို MySQL 8 `ONLY_FULL_GROUP_BY` safe ဖြစ်သော Subquery Sorting & Search Filter QueryBuilder ရေးသားခြင်း။ |
 | **၅** | `app/Customize/Controller/Admin/Product/FavouriteProductController.php` | Symfony Controller | Search Form၊ List ပြသခြင်း (Pagination) နှင့် Standard CsvExportService ဖြင့် CSV Streaming Download ထုတ်ပေးခြင်း။ |
 | **၆** | `app/template/admin/Product/product_favourite.twig` | Twig Template | Action Column မပါဝင်ဘဲ Search Card၊ ID, Image, Name, Price Range, Fav Count, Status တို့နှင့် CSV ခလုတ်များ ပါဝင်သော UI။ |
 | **၇** | `app/config/eccube/packages/eccube_nav.yaml` | YAML Config | Admin Panel ဘယ်ဘက် Sidebar Menu တွင် "お気に入り商品" (`admin_product_favourite`) link ထည့်သွင်းပေးခြင်း။ |
@@ -176,12 +178,102 @@ final class Version20260917083632 extends AbstractMigration
 
 ---
 
-### အဆင့် (၃) - Custom Repository တည်ဆောက်ခြင်း (MySQL 8 ONLY_FULL_GROUP_BY Safe)
+### အဆင့် (၃) - Search Form Type တည်ဆောက်ခြင်း
+
+Product ID, Product Name, Customer Name, Favorite Count Range (`Min` ～ `Max`) များကို လက်ခံမည့် Form Type ဖြစ်ပါသည်။
+
+📁 **တည်နေရာဖိုင်:** `app/Customize/Form/Type/Admin/SearchFavoriteProductType.php`
+
+```php
+<?php
+
+namespace Customize\Form\Type\Admin;
+
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Validator\Constraints as Assert;
+
+class SearchFavoriteProductType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options)
+    {
+        $builder
+            // Product ID (Exact or comma-separated)
+            ->add('id', TextType::class, [
+                'label' => 'admin.product.product_id',
+                'required' => false,
+                'attr' => [
+                    'placeholder' => '商品ID',
+                ],
+            ])
+            // Product Name / Code
+            ->add('name', TextType::class, [
+                'label' => 'admin.product.name',
+                'required' => false,
+                'attr' => [
+                    'placeholder' => '商品名・商品コード',
+                ],
+            ])
+            // Customer Name / Kana / Email
+            ->add('customer_name', TextType::class, [
+                'label' => 'admin.customer.name',
+                'required' => false,
+                'attr' => [
+                    'placeholder' => '会員名・カナ・メールアドレス',
+                ],
+            ])
+            // Favorite Count Minimum
+            ->add('favorite_count_min', IntegerType::class, [
+                'label' => 'お気に入り数(下限)',
+                'required' => false,
+                'constraints' => [
+                    new Assert\PositiveOrZero(),
+                ],
+                'attr' => [
+                    'placeholder' => '0',
+                    'min' => 0,
+                ],
+            ])
+            // Favorite Count Maximum
+            ->add('favorite_count_max', IntegerType::class, [
+                'label' => 'お気に入り数(上限)',
+                'required' => false,
+                'constraints' => [
+                    new Assert\PositiveOrZero(),
+                ],
+                'attr' => [
+                    'placeholder' => '999',
+                    'min' => 0,
+                ],
+            ])
+            ->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
+                $form = $event->getForm();
+                $favMin = $form['favorite_count_min']->getData();
+                $favMax = $form['favorite_count_max']->getData();
+
+                if ($favMin !== null && $favMax !== null && $favMin > $favMax) {
+                    $form['favorite_count_max']->addError(new FormError('上限値は下限値以上の数値を指定してください。'));
+                }
+            });
+    }
+
+    public function getBlockPrefix(): string
+    {
+        return 'admin_search_favorite';
+    }
+}
+```
+
+---
+
+### အဆင့် (၄) - Custom Repository တည်ဆောက်ခြင်း (MySQL 8 ONLY_FULL_GROUP_BY Safe & Search Filter)
 
 Database Query များကို Controller ထဲတွင် တိုက်ရိုက် မရေးဘဲ Repository Pattern အတိုင်း သီးသန့် ခွဲထုတ်ရေးသားပါသည်။
-
-> [!TIP]
-> **အရေးကြီးသော အချက်:** MySQL 8 တွင် `GROUP BY p.id` ရေးသားပါက `sql_mode=only_full_group_by` Error 1055 တက်တတ်ပါသည်။ ထို့ကြောင့် `GROUP BY` အစား **Subquery Sorting (`AS HIDDEN favorite_count`)** ကို အသုံးပြုထားပါသည်။
 
 📁 **တည်နေရာဖိုင်:** `app/Customize/Repository/FavouriteProductRepository.php`
 
@@ -195,6 +287,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Eccube\Entity\CustomerFavoriteProduct;
 use Eccube\Entity\Product;
 use Eccube\Repository\AbstractRepository;
+use Eccube\Util\StringUtil;
 
 class FavouriteProductRepository extends AbstractRepository
 {
@@ -204,16 +297,58 @@ class FavouriteProductRepository extends AbstractRepository
     }
 
     /**
-     * Favorite အများဆုံး ကုန်ပစ္စည်းများ စာရင်း QueryBuilder
-     * (MySQL 8 ONLY_FULL_GROUP_BY 100% Safe)
+     * Favorite အများဆုံး ကုန်ပစ္စည်းများ စာရင်းနှင့် CSV Export အတွက် Search QueryBuilder
+     * (MySQL 8 ONLY_FULL_GROUP_BY 100% Safe & Standard Compliant)
      */
-    public function getFavouriteDb(): QueryBuilder
+    public function getFavouriteDb(array $searchData = []): QueryBuilder
     {
         $qb = $this->createQueryBuilder('p');
         $qb->addSelect('(SELECT COUNT(cfp.id) FROM ' . CustomerFavoriteProduct::class . ' cfp WHERE cfp.Product = p) AS HIDDEN favorite_count')
-            ->where('(SELECT COUNT(cfp2.id) FROM ' . CustomerFavoriteProduct::class . ' cfp2 WHERE cfp2.Product = p) > 0')
-            ->orderBy('favorite_count', 'DESC')
-            ->addOrderBy('p.id', 'DESC');
+            ->where('(SELECT COUNT(cfp2.id) FROM ' . CustomerFavoriteProduct::class . ' cfp2 WHERE cfp2.Product = p) > 0');
+
+        // ၁။ Product ID Search
+        if (!empty($searchData['id']) && StringUtil::isNotBlank($searchData['id'])) {
+            $ids = preg_split('/[\s,]+/', $searchData['id'], -1, PREG_SPLIT_NO_EMPTY);
+            $qb->andWhere('p.id IN (:ids)')
+               ->setParameter('ids', $ids);
+        }
+
+        // ၂။ Product Name / Code Search
+        if (!empty($searchData['name']) && StringUtil::isNotBlank($searchData['name'])) {
+            $qb->andWhere('p.name LIKE :pname OR p.code_min LIKE :pname')
+               ->setParameter('pname', '%' . $searchData['name'] . '%');
+        }
+
+        // ၃။ Customer Name Search (အကြိုက်ဆုံး မှတ်တမ်းတင်ထားသော Customer အမည်၊ ကာန သို့မဟုတ် အီးမေးလ်)
+        if (!empty($searchData['customer_name']) && StringUtil::isNotBlank($searchData['customer_name'])) {
+            $cleanName = preg_replace('/\s+|[　]+/u', '', $searchData['customer_name']);
+            $qb->andWhere('EXISTS (
+                SELECT cfp_cust.id FROM ' . CustomerFavoriteProduct::class . ' cfp_cust
+                JOIN cfp_cust.Customer cust
+                WHERE cfp_cust.Product = p
+                AND (
+                    CONCAT(cust.name01, cust.name02) LIKE :cname
+                    OR CONCAT(COALESCE(cust.kana01, \'\'), COALESCE(cust.kana02, \'\')) LIKE :cname
+                    OR cust.email LIKE :cname
+                )
+            )')
+            ->setParameter('cname', '%' . $cleanName . '%');
+        }
+
+        // ၄။ Favorite Count Minimum (အနည်းဆုံး အကြိုက်ဆုံး အရေအတွက်)
+        if (isset($searchData['favorite_count_min']) && $searchData['favorite_count_min'] !== null && $searchData['favorite_count_min'] !== '') {
+            $qb->andWhere('(SELECT COUNT(cfp_min.id) FROM ' . CustomerFavoriteProduct::class . ' cfp_min WHERE cfp_min.Product = p) >= :fav_min')
+               ->setParameter('fav_min', (int)$searchData['favorite_count_min']);
+        }
+
+        // ၅။ Favorite Count Maximum (အများဆုံး အကြိုက်ဆုံး အရေအတွက်)
+        if (isset($searchData['favorite_count_max']) && $searchData['favorite_count_max'] !== null && $searchData['favorite_count_max'] !== '') {
+            $qb->andWhere('(SELECT COUNT(cfp_max.id) FROM ' . CustomerFavoriteProduct::class . ' cfp_max WHERE cfp_max.Product = p) <= :fav_max')
+               ->setParameter('fav_max', (int)$searchData['favorite_count_max']);
+        }
+
+        $qb->orderBy('favorite_count', 'DESC')
+           ->addOrderBy('p.id', 'DESC');
 
         return $qb;
     }
@@ -222,13 +357,11 @@ class FavouriteProductRepository extends AbstractRepository
 
 ---
 
-### အဆင့် (၄) - Admin Controller တည်ဆောက်ခြင်း (List & CSV Export)
+### အဆင့် (၅) - Admin Controller တည်ဆောက်ခြင်း (Search, List & CSV Export)
 
-Controller တွင် အဓိက လုပ်ဆောင်ချက် (၂) ခု ပါဝင်ပါသည်:
-1. **`index` Action:** KnpPaginator ဖြင့် စာမျက်နှာ ခွဲထုတ်ပြသခြင်း (`wrap-queries => true`)။
-2. **`export` Action:** `CsvExportService` ဖြင့် Excel Encoding ကိုက်ညီစေရန် UTF-8 BOM ထည့်သွင်းပြီး Chunking ဖြင့် CSV Stream ထုတ်ပေးခြင်း။
+Controller တွင် Search Form handling၊ KnpPaginator Pagination (`wrap-queries => true`) နှင့် Route Aliases များ ထည့်သွင်းထားပါသည်။
 
-📁 **တည်နေရာဖိုင်:** `app/Customize/Controller/Admin/Product/FavoriteController.php`
+📁 **တည်နေရာဖိုင်:** `app/Customize/Controller/Admin/Product/FavouriteProductController.php`
 
 ```php
 <?php
@@ -236,18 +369,20 @@ Controller တွင် အဓိက လုပ်ဆောင်ချက် (�
 namespace Customize\Controller\Admin\Product;
 
 use Customize\Constant\CustomCsvType;
+use Customize\Form\Type\Admin\SearchFavoriteProductType;
 use Customize\Repository\FavouriteProductRepository;
 use Eccube\Controller\AbstractController;
 use Eccube\Entity\ExportCsvRow;
 use Eccube\Entity\Product;
 use Eccube\Service\CsvExportService;
+use Eccube\Util\FormUtil;
 use Knp\Component\Pager\PaginatorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
-class FavoriteController extends AbstractController
+class FavouriteProductController extends AbstractController
 {
     protected $favouriteProductRepository;
     protected $csvExportService;
@@ -264,31 +399,53 @@ class FavoriteController extends AbstractController
     }
 
     /**
-     * Admin အကြိုက်ဆုံး ကုန်ပစ္စည်းများ စာရင်း ပြသခြင်း
+     * Admin အကြိုက်ဆုံး ကုန်ပစ္စည်းများ စာရင်းနှင့် Search Form ပြသခြင်း
      *
+     * @Route("/%eccube_admin_route%/product/favourite", name="admin_product_favourite", methods={"GET", "POST"})
+     * @Route("/%eccube_admin_route%/product/favourite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favourite_page", methods={"GET", "POST"})
      * @Route("/%eccube_admin_route%/product/favorite", name="admin_product_favorite", methods={"GET", "POST"})
      * @Route("/%eccube_admin_route%/product/favorite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favorite_page", methods={"GET", "POST"})
-     * @Template("@admin/Product/favorite.twig")
+     * @Template("@admin/Product/product_favourite.twig")
      */
     public function index(Request $request, $page_no = null): array
     {
-        $page_no = $page_no ?: $request->query->getInt('page_no', 1);
+        $searchForm = $this->createForm(SearchFavoriteProductType::class);
+        $searchData = [];
+
+        if ($request->getMethod() === 'POST') {
+            $searchForm->handleRequest($request);
+            if ($searchForm->isSubmitted() && $searchForm->isValid()) {
+                $searchData = $searchForm->getData();
+                $page_no = 1;
+                $this->session->set('eccube.admin.product.favourite.search', FormUtil::getViewData($searchForm));
+                $this->session->set('eccube.admin.product.favourite.search.page_no', $page_no);
+            }
+        } else {
+            if (null !== $page_no) {
+                $this->session->set('eccube.admin.product.favourite.search.page_no', (int) $page_no);
+            } else {
+                $page_no = $this->session->get('eccube.admin.product.favourite.search.page_no', 1);
+            }
+
+            $viewData = $this->session->get('eccube.admin.product.favourite.search', []);
+            $searchData = FormUtil::submitAndGetData($searchForm, $viewData);
+        }
+
         $page_count = $this->eccubeConfig->get('eccube_default_page_count');
-
-        $qb = $this->favouriteProductRepository->getFavouriteDb();
-
-        // KnpPaginator Pagination
+        $qb = $this->favouriteProductRepository->getFavouriteDb($searchData);
         $pagination = $this->paginator->paginate($qb, $page_no, $page_count, ['wrap-queries' => true]);
 
         return [
+            'searchForm' => $searchForm->createView(),
             'pagination' => $pagination,
             'page_no' => $page_no,
         ];
     }
 
     /**
-     * Admin Favourite Product CSV Export
+     * Admin Favourite Product CSV Export (Search Filtered)
      *
+     * @Route("/%eccube_admin_route%/product/favourite/export", name="admin_product_favourite_export", methods={"GET"})
      * @Route("/%eccube_admin_route%/product/favorite/export", name="admin_product_favorite_export", methods={"GET"})
      */
     public function export(Request $request): StreamedResponse
@@ -298,22 +455,21 @@ class FavoriteController extends AbstractController
 
         $response = new StreamedResponse();
         $response->setCallback(function () use ($request) {
-            // ၁။ Custom CSV Type (ID: 20) ဖြင့် Initialize လုပ်ခြင်း
             $this->csvExportService->initCsvType(CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT);
 
-            // ၂။ QueryBuilder ချိတ်ဆက်ခြင်း
-            $qb = $this->favouriteProductRepository->getFavouriteDb();
+            $searchForm = $this->createForm(SearchFavoriteProductType::class);
+            $viewData = $this->session->get('eccube.admin.product.favourite.search', []);
+            $searchData = FormUtil::submitAndGetData($searchForm, $viewData);
+
+            $qb = $this->favouriteProductRepository->getFavouriteDb($searchData);
             $this->csvExportService->setExportQueryBuilder($qb);
 
-            // ၃။ UTF-8 BOM ထည့်သွင်းခြင်း (Excel ပျက်စီးမှု ကာကွယ်ရန်)
             $fp = fopen('php://output', 'w');
             fwrite($fp, "\xEF\xBB\xBF");
             fclose($fp);
 
-            // ၄။ Header ထုတ်ပေးခြင်း
             $this->csvExportService->exportHeader();
 
-            // ၅။ Data Rows များကို Chunking ဖြင့် Memory Leak ကင်းစွာ ထုတ်ပေးခြင်း
             $this->csvExportService->exportData(function (Product $Product, CsvExportService $csvService) use ($request) {
                 $Csvs = $csvService->getCsvs();
                 $ExportCsvRow = new ExportCsvRow();
@@ -339,11 +495,11 @@ class FavoriteController extends AbstractController
         });
 
         $now = new \DateTime();
-        $filename = 'favorite_products_' . $now->format('YmdHis') . '.csv';
+        $filename = 'favourite_products_' . $now->format('YmdHis') . '.csv';
         $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
-        log_info('Favorite CSV Export Completed', [$filename]);
+        log_info('Favourite CSV Export Completed', [$filename]);
 
         return $response;
     }
@@ -352,11 +508,11 @@ class FavoriteController extends AbstractController
 
 ---
 
-### အဆင့် (၅) - Admin Twig Template တည်ဆောက်ခြင်း
+### အဆင့် (၆) - Admin Twig Template တည်ဆောက်ခြင်း
 
-UI တွင် Action Column (Edit/Delete) မပါဝင်စေဘဲ သန့်ရှင်းစွာ ရေးသားထားပါသည်။
+UI တွင် Search Card၊ Table List၊ Price Range နှင့် CSV ခလုတ်များ ပါဝင်ပါသည်။
 
-📁 **တည်နေရာဖိုင်:** `app/template/admin/Product/favorite.twig`
+📁 **တည်နေရာဖိုင်:** `app/template/admin/Product/product_favourite.twig`
 
 ```twig
 {% extends '@admin/default_frame.twig' %}
@@ -389,6 +545,20 @@ UI တွင် Action Column (Edit/Delete) မပါဝင်စေဘဲ သ�
     </style>
 {% endblock %}
 
+{% block javascript %}
+    <script>
+        $(function() {
+            // Clear Search Form Inputs
+            $('.btn-clear-search').on('click', function(e) {
+                e.preventDefault();
+                var $form = $('#search_form');
+                $form.find('input[type="text"], input[type="number"]').val('');
+                $form.submit();
+            });
+        });
+    </script>
+{% endblock %}
+
 {% block main %}
     <div class="c-contentsArea__cols">
         <div class="c-contentsArea__primaryCol">
@@ -405,13 +575,72 @@ UI တွင် Action Column (Edit/Delete) မပါဝင်စေဘဲ သ�
                     <div>
                         <!-- CSV Download & CSV Output Setting Buttons -->
                         <div class="btn-group" role="group">
-                            <a href="{{ url('admin_product_favorite_export') }}" class="btn btn-ec-regular">
+                            <a href="{{ url('admin_product_favourite_export') }}" class="btn btn-ec-regular">
                                 <i class="fa fa-cloud-download me-1 text-secondary"></i><span>{{ 'admin.common.csv_download'|trans }}</span>
                             </a>
                             <a href="{{ url('admin_setting_shop_csv', { id: constant('\\Customize\\Constant\\CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT') }) }}" class="btn btn-ec-regular">
                                 <i class="fa fa-cog me-1 text-secondary"></i><span>{{ 'admin.setting.shop.csv_setting'|trans }}</span>
                             </a>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Search Filter Card -->
+                <div class="card rounded border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark">
+                            <i class="fa fa-search me-2 text-primary"></i>{{ 'admin.common.search_condition'|trans }}
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form name="search_form" id="search_form" method="POST" action="{{ url('admin_product_favourite') }}">
+                            {{ form_widget(searchForm._token) }}
+                            <div class="row g-3">
+                                <!-- Product ID -->
+                                <div class="col-md-6 col-lg-3">
+                                    <label class="form-label small fw-bold text-muted">{{ form_label(searchForm.id) }}</label>
+                                    {{ form_widget(searchForm.id, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(searchForm.id) }}
+                                </div>
+
+                                <!-- Product Name / Code -->
+                                <div class="col-md-6 col-lg-3">
+                                    <label class="form-label small fw-bold text-muted">{{ form_label(searchForm.name) }}</label>
+                                    {{ form_widget(searchForm.name, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(searchForm.name) }}
+                                </div>
+
+                                <!-- Customer Name -->
+                                <div class="col-md-6 col-lg-3">
+                                    <label class="form-label small fw-bold text-muted">{{ form_label(searchForm.customer_name) }}</label>
+                                    {{ form_widget(searchForm.customer_name, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(searchForm.customer_name) }}
+                                </div>
+
+                                <!-- Favorite Count Range -->
+                                <div class="col-md-6 col-lg-3">
+                                    <label class="form-label small fw-bold text-muted">お気に入り数 (範囲)</label>
+                                    <div class="input-group">
+                                        {{ form_widget(searchForm.favorite_count_min, {'attr': {'class': 'form-control', 'placeholder': 'Min'}}) }}
+                                        <span class="input-group-text">～</span>
+                                        {{ form_widget(searchForm.favorite_count_max, {'attr': {'class': 'form-control', 'placeholder': 'Max'}}) }}
+                                    </div>
+                                    {{ form_errors(searchForm.favorite_count_min) }}
+                                    {{ form_errors(searchForm.favorite_count_max) }}
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-12 text-center">
+                                    <button type="submit" class="btn btn-ec-conversion px-4">
+                                        <i class="fa fa-search me-1"></i>{{ 'admin.common.search'|trans }}
+                                    </button>
+                                    <button type="button" class="btn btn-ec-sub px-4 ms-2 btn-clear-search">
+                                        {{ 'admin.common.clear'|trans }}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
 
@@ -523,7 +752,7 @@ UI တွင် Action Column (Edit/Delete) မပါဝင်စေဘဲ သ�
                 <!-- Pagination Footer -->
                 {% if pagination and pagination.totalItemCount > 0 %}
                     <div class="row justify-content-md-center mb-4">
-                        {% include "@admin/pager.twig" with {'pages': pagination.paginationData, 'routes': 'admin_product_favorite_page'} %}
+                        {% include "@admin/pager.twig" with {'pages': pagination.paginationData, 'routes': 'admin_product_favourite_page'} %}
                     </div>
                 {% endif %}
 
@@ -535,9 +764,7 @@ UI တွင် Action Column (Edit/Delete) မပါဝင်စေဘဲ သ�
 
 ---
 
-### အဆင့် (၆) - Admin Sidebar Navigation စာရင်းသွင်းခြင်း
-
-Admin Menu ဘယ်ဘက်ခြမ်းတွင် ပေါ်လာစေရန် `eccube_nav.yaml` တွင် route ကို သတ်မှတ်ပေးရပါမည်။
+### အဆင့် (၇) - Admin Sidebar Navigation စာရင်းသွင်းခြင်း
 
 📁 **တည်နေရာဖိုင်:** `app/config/eccube/packages/eccube_nav.yaml`
 
@@ -551,57 +778,29 @@ parameters:
                 product_master:
                     name: admin.product.product_list
                     url: admin_product
+                custom_product_list:
+                    name: admin.product.custom_product_list
+                    url: admin_product_custom_list
                 favorite_product:
                     name: admin.favorite.favorite_products
-                    url: admin_product_favorite
+                    url: admin_product_favourite
 ```
 
 ---
 
-### အဆင့် (၇) - Terminal Commands များ Run ခြင်း
-
-ဖိုင်များ အားလုံး ပြင်ဆင်ပြီးပါက Terminal မှ အောက်ပါ Commands များကို အစဉ်လိုက် Run ပေးရပါမည်:
+### အဆင့် (၈) - Terminal Commands များ Run ခြင်း
 
 ```bash
 # ၁။ Migration Run ၍ mtb_csv_type နှင့် dtb_csv သို့ Data သွင်းခြင်း
 docker compose exec -T ec-cube php bin/console doctrine:migrations:migrate --no-interaction
 
 # ၂။ Symfony Cache အား ရှင်းလင်းခြင်း
-docker compose exec -T ec-cube php bin/console cache:clear --no-warmup
+docker compose exec -T -u www-data ec-cube php bin/console cache:clear --no-warmup
 
-# ၃။ Docker Cache Permission ပြင်ဆင်ခြင်း (Permission denied မဖြစ်စေရန်)
+# ၃။ Proxies များ Generate လုပ်ခြင်း
+docker compose exec -T -u root ec-cube php bin/console eccube:generate:proxies
+
+# ၄။ Docker Cache Permission ပြင်ဆင်ခြင်း (Permission denied မဖြစ်စေရန်)
 docker compose exec -T -u root ec-cube chown -R www-data:www-data var/cache var/log
 docker compose exec -T -u root ec-cube chmod -R 777 var/cache var/log
 ```
-
----
-
-## ၄။ Developer များ မဖြစ်မနေ သတိပြုရမည့် အချက်များ (Common Pitfalls & Solutions)
-
-1. **MySQL 8 `ONLY_FULL_GROUP_BY` (1055 Error):**
-   * Doctrine Entity များကို `GROUP BY p.id` လုပ်ခြင်းသည် MySQL 8 တွင် SELECT list ထဲ၌ non-aggregated columns များ ပါဝင်သွားသဖြင့် Error တက်ပါသည်။
-   * **ဖြေရှင်းနည်း:** `GROUP BY` မသုံးဘဲ `addSelect('(SELECT COUNT(...) ...) AS HIDDEN alias')` ဖြင့် Subquery Sorting ပြုလုပ်ပါ။
-
-2. **Translation `%count%` Placeholder ပျက်စီးခြင်း:**
-   * `{{ pagination.totalItemCount }} {{ 'admin.common.count'|trans }}` ဟု ရေးပါက `1 %count% items` ဟု ပေါ်ပါသည်။
-   * **ဖြေရှင်းနည်း:** `{{ 'admin.common.count'|trans({'%count%': pagination.totalItemCount|number_format}) }}` ဟု Parameter ထည့်ပေးပါ။
-
-3. **KnpPaginator Count Mismatch:**
-   * QueryBuilder တွင် Subquery သို့မဟုတ် Joins များ ပါဝင်ပါက KnpPaginator က count မှားယွင်းတတ်ပါသည်။
-   * **ဖြေရှင်းနည်း:** `$this->paginator->paginate($qb, $pageNo, $pageLimit, ['wrap-queries' => true]);` ဟု `wrap-queries` option အမြဲ ထည့်ပေးပါ။
-
-4. **Excel CSV ဂျပန်/မြန်မာစာလုံး မပျက်စီးစေရန်:**
-   * UTF-8 CSV ကို Excel က ဖွင့်သောအခါ Font ပျက်တတ်ပါသည်။
-   * **ဖြေရှင်းနည်း:** Output မစတင်မီ UTF-8 BOM (`\xEF\xBB\xBF`) ကို အရင် ရေးသားပေးပါ။
-
----
-
-## ၅။ နောင်တွင် အခြား Feature အသစ်များ တည်ဆောက်ရန် ဤ Pattern ကို အသုံးပြုပုံ (How to Reuse for Future Features)
-
-ဥပမာအားဖြင့် **"Top Selling Products (အရောင်းရဆုံး ကုန်ပစ္စည်းများ)"** သို့မဟုတ် **"Customer Ranking (ဝယ်ယူမှု အများဆုံး Customer များ)"** စနစ်သစ်များ ထပ်မံ ဖန်တီးလိုပါက အောက်ပါ Step များကို တူညီစွာ အသုံးပြုနိုင်ပါသည်:
-
-1. **Constant ဖန်တီးခြင်း:** `CustomCsvType::CSV_TYPE_TOP_SELLING = 30` ဟု သတ်မှတ်ပါ။
-2. **Migration ရေးခြင်း:** `mtb_csv_type` (ID: 30) နှင့် `dtb_csv` Columns များကို `Version...` ဖြင့် migrate လုပ်ပါ။
-3. **Repository Method ရေးခြင်း:** Order Detail မှ Quantity အများဆုံးကို Subquery ဖြင့် sort လုပ်သော `getTopSellingDb(): QueryBuilder` ရေးပါ။
-4. **Controller တည်ဆောက်ခြင်း:** `TopSellingController.php` တွင် `initCsvType(30)` ဖြင့် ချိတ်ဆက်ပါ။
-5. **Twig Template ပြင်ဆင်ခြင်း:** Action Column မပါသော Table ဖြင့် CSV Setting (`/admin/setting/shop/csv/30`) ခလုတ် ထည့်သွင်းပါ။
