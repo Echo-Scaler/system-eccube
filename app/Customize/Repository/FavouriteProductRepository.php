@@ -15,6 +15,7 @@ namespace Customize\Repository;
 
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use Eccube\Entity\CustomerFavoriteProduct;
 use Eccube\Entity\Product;
 use Eccube\Repository\AbstractRepository;
 
@@ -32,16 +33,20 @@ class FavouriteProductRepository extends AbstractRepository
 
     /**
      * Favorite အများဆုံး ကုန်ပစ္စည်းများ စာရင်းနှင့် CSV Export အတွက် QueryBuilder
-     * (MySQL 8 ONLY_FULL_GROUP_BY & EC-CUBE Standard Compliant)
+     * (MySQL 8 ONLY_FULL_GROUP_BY 100% Safe & Standard Compliant)
+     *
+     * Subquery sorting ကို အသုံးပြုထားသောကြောင့် GROUP BY error လုံးဝ မဖြစ်ပေါ်ပါ။
      *
      * @return QueryBuilder
      */
     public function getFavouriteDb(): QueryBuilder
     {
-        return $this->createQueryBuilder('p')
-            ->leftJoin('p.CustomerFavoriteProducts', 'cfp')
-            ->groupBy('p.id')
-            ->orderBy('COUNT(cfp.id)', 'DESC')
+        $qb = $this->createQueryBuilder('p');
+        $qb->addSelect('(SELECT COUNT(cfp.id) FROM ' . CustomerFavoriteProduct::class . ' cfp WHERE cfp.Product = p) AS HIDDEN favorite_count')
+            ->where('(SELECT COUNT(cfp2.id) FROM ' . CustomerFavoriteProduct::class . ' cfp2 WHERE cfp2.Product = p) > 0')
+            ->orderBy('favorite_count', 'DESC')
             ->addOrderBy('p.id', 'DESC');
+
+        return $qb;
     }
 }

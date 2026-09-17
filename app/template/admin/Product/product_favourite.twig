@@ -52,7 +52,7 @@ file that was distributed with this source code.
                         <div>
                             {% if pagination and pagination.totalItemCount > 0 %}
                                 <span class="badge bg-primary px-3 py-2 fs-7">
-                                    {{ pagination.totalItemCount|number_format }} {{ 'admin.common.count'|trans }}
+                                    {{ 'admin.common.count'|trans({'%count%': pagination.totalItemCount|number_format}) }}
                                 </span>
                             {% endif %}
                         </div>
@@ -151,7 +151,7 @@ file that was distributed with this source code.
                 <!-- Pagination Footer -->
                 {% if pagination and pagination.totalItemCount > 0 %}
                     <div class="row justify-content-md-center mb-4">
-                        {% include "@admin/pager.twig" with {'pages': pagination.paginationData, 'routes': 'admin_product_favourite'} %}
+                        {% include "@admin/pager.twig" with {'pages': pagination.paginationData, 'routes': 'admin_product_favourite_page'} %}
                     </div>
                 {% endif %}
 

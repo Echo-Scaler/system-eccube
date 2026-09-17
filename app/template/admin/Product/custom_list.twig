@@ -227,7 +227,7 @@ file that was distributed with this source code.
                         <div>
                             {% if pagination and pagination.totalItemCount > 0 %}
                                 <span class="badge bg-primary px-3 py-2 fs-7">
-                                    {{ pagination.totalItemCount|number_format }} {{ 'admin.common.count'|trans }}
+                                    {{ 'admin.common.count'|trans({'%count%': pagination.totalItemCount|number_format}) }}
                                 </span>
                             {% endif %}
                         </div>
