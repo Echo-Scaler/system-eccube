@@ -23,12 +23,12 @@ flowchart TD
 
     subgraph Backend["Backend Layer (Symfony/EC-CUBE)"]
         Repo["FavouriteProductRepository.php<br/>(getFavouriteDb QueryBuilder)"]
-        Ctrl["FavoriteController.php<br/>- index Action (Pagination)<br/>- export Action (Streaming CSV)"]
+        Ctrl["FavouriteProductController.php<br/>- index Action (Pagination & Search)<br/>- export Action (Streaming CSV)"]
         Service["CsvExportService<br/>(initCsvType / exportHeader / exportData)"]
     end
 
     subgraph UI["Admin UI (Twig Template)"]
-        View["favorite.twig<br/>- Products List Table (No Action Column)<br/>- Price Range (Min ～ Max)<br/>- CSV Download & Settings Buttons"]
+        View["product_favourite.twig<br/>- Products List Table (No Action Column)<br/>- Search Filter Card (ID, Name, Customer, Fav Counts)<br/>- Price Range (Min ～ Max)<br/>- CSV Download & Settings Buttons"]
         CsvSetting["/admin/setting/shop/csv/20<br/>(Store CSV Column Configuration)"]
     end
 
@@ -52,9 +52,10 @@ flowchart TD
 | **၁** | `app/DoctrineMigrations/Version20260917083632.php` | Doctrine Migration | Database ၏ `mtb_csv_type` (ID: 20) နှင့် `dtb_csv` Default Columns (၆) ခုကို စနစ်တကျ ထည့်သွင်းပေးခြင်း။ |
 | **၂** | `app/Customize/Constant/CustomCsvType.php` | PHP Class (Constant) | CSV Type ID ကို Hardcode မဖြစ်စေရန် `CSV_TYPE_FAVOURITE_PRODUCT = 20` ဟု သတ်မှတ်ပေးခြင်း။ |
 | **၃** | `app/Customize/Repository/FavouriteProductRepository.php` | Doctrine Repository | Favorite အများဆုံး ကုန်ပစ္စည်းများကို MySQL 8 `ONLY_FULL_GROUP_BY` safe ဖြစ်သော Subquery Sorting ဖြင့် ဆွဲထုတ်ပေးသော QueryBuilder။ |
-| **၄** | `app/Customize/Controller/Admin/Product/FavoriteController.php` | Symfony Controller | List ပြသခြင်း (Pagination) နှင့် Standard CsvExportService ဖြင့် CSV Streaming Download ထုတ်ပေးခြင်း။ |
-| **၅** | `app/template/admin/Product/favorite.twig` | Twig Template | Action Column မပါဝင်ဘဲ ID, Image, Name, Price Range, Fav Count, Status တို့နှင့် CSV ခလုတ်များ ပါဝင်သော UI။ |
-| **၆** | `app/config/eccube/packages/eccube_nav.yaml` | YAML Config | Admin Panel ဘယ်ဘက် Sidebar Menu တွင် "お気に入り商品 (Favorite Products)" link ထည့်သွင်းပေးခြင်း။ |
+| **၄** | `app/Customize/Form/Type/Admin/SearchFavoriteProductType.php` | Symfony Form Type | Product ID, Name, Customer Name, Favorite Count Range Search Fields များ တည်ဆောက်ခြင်း။ |
+| **၅** | `app/Customize/Controller/Admin/Product/FavouriteProductController.php` | Symfony Controller | Search Form၊ List ပြသခြင်း (Pagination) နှင့် Standard CsvExportService ဖြင့် CSV Streaming Download ထုတ်ပေးခြင်း။ |
+| **၆** | `app/template/admin/Product/product_favourite.twig` | Twig Template | Action Column မပါဝင်ဘဲ Search Card၊ ID, Image, Name, Price Range, Fav Count, Status တို့နှင့် CSV ခလုတ်များ ပါဝင်သော UI။ |
+| **၇** | `app/config/eccube/packages/eccube_nav.yaml` | YAML Config | Admin Panel ဘယ်ဘက် Sidebar Menu တွင် "お気に入り商品" (`admin_product_favourite`) link ထည့်သွင်းပေးခြင်း။ |
 
 ---
 

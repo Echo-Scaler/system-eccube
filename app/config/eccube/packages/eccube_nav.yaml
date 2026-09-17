@@ -12,7 +12,7 @@ parameters:
                     url: admin_product_custom_list
                 favorite_product:
                     name: admin.favorite.favorite_products
-                    url: admin_product_favorite
+                    url: admin_product_favourite
                 product_edit:
                     name: admin.product.product_registration
                     url: admin_product_product_new
