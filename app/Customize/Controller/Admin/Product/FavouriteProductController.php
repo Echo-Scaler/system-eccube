@@ -22,16 +22,11 @@ use Eccube\Service\CsvExportService;
 use Knp\Component\Pager\PaginatorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
-/**
- * Class FavoriteController
- *
- * Admin Panel တွင် ဝယ်ယူသူများ၏ အကြိုက်ဆုံး ကုန်ပစ္စည်းများ စာရင်းနှင့် Favorite CSV Export ကို ကိုင်တွယ်သော Controller ဖြစ်ပါသည်။
- * (Admin Controller for displaying favorite products and handling CSV export)
- */
-class FavoriteController extends AbstractController
+class FavouriteProductController extends AbstractController
 {
     /**
      * @var FavouriteProductRepository
@@ -48,13 +43,6 @@ class FavoriteController extends AbstractController
      */
     protected $paginator;
 
-    /**
-     * FavoriteController constructor.
-     *
-     * @param FavouriteProductRepository $favouriteProductRepository
-     * @param CsvExportService $csvExportService
-     * @param PaginatorInterface $paginator
-     */
     public function __construct(
         FavouriteProductRepository $favouriteProductRepository,
         CsvExportService $csvExportService,
@@ -67,11 +55,10 @@ class FavoriteController extends AbstractController
 
     /**
      * Admin အကြိုက်ဆုံး ကုန်ပစ္စည်းများ စာရင်း ပြသခြင်း
-     * (Admin Favourite Product List showing Image, Product Name, Price range, and Favorite Counts)
      *
-     * @Route("/%eccube_admin_route%/product/favorite", name="admin_product_favorite", methods={"GET", "POST"})
-     * @Route("/%eccube_admin_route%/product/favorite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favorite_page", methods={"GET", "POST"})
-     * @Template("@admin/Product/favorite.twig")
+     * @Route("/%eccube_admin_route%/product/favourite", name="admin_product_favourite", methods={"GET", "POST"})
+     * @Route("/%eccube_admin_route%/product/favourite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favourite_page", methods={"GET", "POST"})
+     * @Template("@admin/Product/product_favourite.twig")
      *
      * @param Request $request
      * @param int|null $page_no
@@ -82,10 +69,8 @@ class FavoriteController extends AbstractController
         $page_no = $page_no ?: $request->query->getInt('page_no', 1);
         $page_count = $this->eccubeConfig->get('eccube_default_page_count');
 
-        // Repository Method ဖြင့် Favorite အများဆုံး ကုန်ပစ္စည်း QueryBuilder ရယူခြင်း
         $qb = $this->favouriteProductRepository->getFavouriteDb();
 
-        // KnpPaginator ဖြင့် Pagination ပြုလုပ်ခြင်း (wrap-queries => true core standard)
         $pagination = $this->paginator->paginate($qb, $page_no, $page_count, ['wrap-queries' => true]);
 
         return [
@@ -95,12 +80,9 @@ class FavoriteController extends AbstractController
     }
 
     /**
-     * Admin Favourite Product CSV Export (EC-CUBE Standard)
+     * Admin Favourite CSV Export (EC-CUBE Standard)
      *
-     * @Route("/%eccube_admin_route%/product/favorite/export", name="admin_product_favorite_export", methods={"GET"})
-     *
-     * @param Request $request
-     * @return StreamedResponse
+     * @Route("/%eccube_admin_route%/product/favourite/export", name="admin_product_favourite_export", methods={"GET"})
      */
     public function export(Request $request): StreamedResponse
     {
@@ -116,7 +98,7 @@ class FavoriteController extends AbstractController
             $qb = $this->favouriteProductRepository->getFavouriteDb();
             $this->csvExportService->setExportQueryBuilder($qb);
 
-            // ၃။ UTF-8 BOM ထည့်သွင်းခြင်း (Excel encoding safe)
+            // ၃။ Excel တွင် ဂျပန်/မြန်မာ စာလုံးမပျက်စေရန် UTF-8 BOM ထည့်သွင်းခြင်း
             $fp = fopen('php://output', 'w');
             fwrite($fp, "\xEF\xBB\xBF");
             fclose($fp);
@@ -139,7 +121,7 @@ class FavoriteController extends AbstractController
                         $statusName = $Product->getStatus() ? $Product->getStatus()->getName() : '';
                         $ExportCsvRow->setData($statusName);
                     } else {
-                        // Core Product entity field များကို standard getData ဖြင့် ရယူခြင်း
+                        // Core Product entity field များကို getData ဖြင့် ရယူခြင်း
                         $ExportCsvRow->setData($csvService->getData($Csv, $Product));
                     }
 
@@ -151,11 +133,11 @@ class FavoriteController extends AbstractController
         });
 
         $now = new \DateTime();
-        $filename = 'favorite_products_' . $now->format('YmdHis') . '.csv';
+        $filename = 'favourite_products_' . $now->format('YmdHis') . '.csv';
         $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
-        log_info('Favorite CSV Export Completed', [$filename]);
+        log_info('Favourite CSV Export Completed', [$filename]);
 
         return $response;
     }
