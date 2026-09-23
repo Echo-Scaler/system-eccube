@@ -51,6 +51,15 @@ file that was distributed with this source code.
                         </h4>
                         <p class="text-muted small mb-0">{{ 'admin.product.favorite_management'|trans }}</p>
                     </div>
+                    <!-- Actions: CSV Download & CSV Setting -->
+                    <div class="btn-group" role="group">
+                        <a href="{{ url('admin_product_favourite_export') }}" class="btn btn-ec-regular shadow-sm">
+                            <i class="fa fa-cloud-download me-1 text-secondary"></i><span>{{ 'admin.common.csv_download'|trans }}</span>
+                        </a>
+                        <a href="{{ url('admin_setting_shop_csv', { id: constant('\\Customize\\Constant\\CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT') }) }}" class="btn btn-ec-regular shadow-sm" title="{{ 'admin.setting.shop.csv_setting'|trans }}">
+                            <i class="fa fa-cog me-1 text-secondary"></i><span>{{ 'admin.setting.shop.csv_setting'|trans }}</span>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Products Table Card -->
