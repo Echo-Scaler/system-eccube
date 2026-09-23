@@ -28,7 +28,50 @@
 
 ---
 
-### မေးခွန်း (၂) - EC-CUBE တွင် အဘယ်ကြောင့် CSV Type Format ကို အသုံးပြုရသနည်း?
+### မေးခွန်း (၂) - Form မှ Data ယူခြင်း နှင့် Repository မှ Data ယူခြင်း ခြားနားချက် (Old Code vs New Code)
+#### (SearchForm vs Repository: Why did the old code use SearchForm?)
+
+ယခင် Old Code တွင် တွေ့ခဲ့ရသော အောက်ပါ code သည် **Database မှ Data ဆွဲထုတ်ခြင်း မဟုတ်ပါ**:
+
+```php
+// ၁။ Search Form တည်ဆောက်ခြင်း
+$searchForm = $this->createForm(SearchFavoriteProductType::class);
+$searchData = [];
+```
+
+#### သဘောတရား အမှန်ကို နားလည်စေရန် ရှင်းလင်းချက်:
+
+| Component | အဓိက တာဝန် (Role) | ရှင်းလင်းချက် |
+| :--- | :--- | :--- |
+| **`SearchForm`** | **User Input (လက်ခံခြင်း)** | Database ကို လုံးဝ မထိပါ။ User က UI တွင် ရိုက်ထည့်လိုက်သော စာသားများ (ဥပမာ- Product ID `10`၊ နာမည် `T-shirt`) ကို Form အနေဖြင့် parse လုပ်ပြီး PHP Array `$searchData` အဖြစ် ပြောင်းပေးရုံသာ ဖြစ်သည်။ |
+| **`Repository`** | **Database Query (ဒေတာဆွဲခြင်း)** | `$searchData` ထဲမှ တန်ဖိုးများကို ယူ၍ Database သို့ တကယ့် SQL/DQL query မေးပြီး Product များကို ရှာဖွေဆွဲထုတ်ပေးသော နေရာ ဖြစ်သည်။ |
+
+* **EC-CUBE Core စံနှုန်း:** EC-CUBE ၏ Product List (`ProductController`) သို့မဟုတ် Order List (`OrderController`) တွင် Admin က Filter ဖြင့် ရှာနိုင်စေရန် `$searchForm` ကို အသုံးပြုလေ့ရှိပါသည်။
+* **ယခု Code တွင် ဖြုတ်လိုက်ရသည့် အကြောင်းရင်း:** ကျွန်ုပ်တို့ Feature တွင် Search Box မလိုအပ်ဘဲ Favorite Products အားလုံးကို တိုက်ရိုက်ပြသပြီး CSV ထုတ်ယူရန်သာ လိုအပ်သောကြောင့် `$searchForm` မလိုတော့ဘဲ **Repository မှ `getFavouriteDb()` ကို တိုက်ရိုက်ခေါ်ယူလိုက်ခြင်း** ဖြစ်ပါသည်။
+
+---
+
+### မေးခွန်း (၃) - Session ကို ဘာကြောင့် သုံးရသလဲ? `$page_no = $this->session->get(..., 1);` ရှင်းလင်းချက်
+#### (Why use session for page_no?)
+
+```php
+$page_no = $this->session->get('eccube.admin.product.favourite.page_no', 1);
+```
+
+#### ကုဒ်၏ အဓိပ္ပာယ်:
+* **`session->get(key, default)`:** Session ထဲတွင် `'eccube.admin.product.favourite.page_no'` ဟူသော key ဖြင့် သိမ်းထားသော စာမျက်နှာနံပါတ်ကို ဆွဲယူသည်။
+* **`1` (ဒုတိယ parameter):** အကယ်၍ Session ထဲတွင် ဘာမှ မရှိသေးပါက (ပထမဆုံးအကြိမ် ဝင်လာခြင်းဖြစ်ပါက) Default အနေဖြင့် **Page 1** ဟု သတ်မှတ်ပေးသည်။
+
+#### Session သုံးရသည့် UX အကြောင်းရင်း (အလွန်အရေးကြီးပါသည်):
+1. Admin သည် Favourite Products စာရင်း၏ **Page 5 (စာမျက်နှာ ၅)** သို့ ရောက်ရှိနေသည် ဆိုပါစို့။
+2. Admin က ထိုစာမျက်နှာ ၅ ရှိ ကုန်ပစ္စည်းတစ်ခု၏ အသေးစိတ်ကို ပြင်ဆင်ရန် Edit Link ကို နှိပ်ပြီး Product Edit စာမျက်နှာသို့ သွားရောက်ပြင်ဆင်လိုက်သည်။
+3. ပြင်ဆင်ပြီးနောက် Admin သည် Favourite List စာမျက်နှာသို့ **ပြန်လည် Back ဆုတ်လာသည့်အခါ**:
+   * Session မသုံးထားပါက Page 1 သို့ ပြန်လည် ပြုတ်ကျသွားမည် ဖြစ်သဖြင့် User Experience အလွန်ဆိုးရွားစေပါသည်။
+   * **Session သုံးထားပါက:** Controller သည် Session ထဲမှ `page_no = 5` ကို ပြန်လည်ဖတ်ယူပေးသဖြင့် Admin သည် မူလ ရောက်ရှိနေခဲ့သော **Page 5 သို့ အတိအကျ ပြန်လည် ရောက်ရှိနေမည်** ဖြစ်ပါသည်။
+
+---
+
+### မေးခွန်း (၄) - EC-CUBE တွင် အဘယ်ကြောင့် CSV Type Format ကို အသုံးပြုရသနည်း?
 #### (Why do we get from CSV Type in this format in EC-CUBE?)
 
 > **တိုတိုနှင့် လိုရင်း အဖြေ:**  
@@ -52,7 +95,7 @@ Controller တွင် `$this->csvExportService->initCsvType(20);` ဟု ရ�
 
 ---
 
-### မေးခွန်း (၃) - အဘယ်ကြောင့် Route (၂) ခု ခွဲခြား ရေးသားရသနည်း?
+### မေးခွန်း (၅) - အဘယ်ကြောင့် Route (၂) ခု ခွဲခြား ရေးသားရသနည်း?
 #### (Why does it create two routes for the Favourite Products List Page?)
 
 Controller တွင် အောက်ပါအတိုင်း Route (၂) ခုကို တွေ့မြင်ရပါမည်:
@@ -76,7 +119,7 @@ Controller တွင် အောက်ပါအတိုင်း Route (၂) �
 
 ---
 
-### မေးခွန်း (၄) - Search Filter နှင့် Customer Name Search များကို အဘယ်ကြောင့် ဖြုတ်ပယ်လိုက်သနည်း?
+### မေးခွန်း (၆) - Search Filter နှင့် Customer Name Search များကို အဘယ်ကြောင့် ဖြုတ်ပယ်လိုက်သနည်း?
 #### (Why were Search Filters removed?)
 
 * မူလက Admin List Page များတွင် Search Filter ထည့်သွင်းလေ့ရှိသောကြောင့် ထည့်သွင်းထားခဲ့သော်လည်း User ၏ တိုက်ရိုက် လိုအပ်ချက်မှာ **"Search Filter မပါဘဲ Favorite Product List နှင့် CSV Export + CSV Setting သီးသန့်သာ လိုအပ်သည်"** ဟု ညွှန်ကြားထားသောကြောင့် ဖြစ်ပါသည်။
@@ -86,9 +129,11 @@ Controller တွင် အောက်ပါအတိုင်း Route (၂) �
 ---
 
 ## ၂။ Doctrine Migration ဖိုင်ကို Command ဖြင့် မည်သို့ ဖန်တီးရမည်နည်း?
-### (How to create migration file by command?)
+### (How to create migration file by command? Is Version<timestamp>.php automatic?)
 
-Migration ဖိုင်တစ်ခုကို လက်ဖြင့် နာမည်ပေး ဖန်တီးမည့်အစား Terminal တွင် အောက်ပါ Symfony/Doctrine command ဖြင့် အလွယ်တကူ generate လုပ်နိုင်ပါသည်:
+> **ဟုတ်ကဲ့၊ ဖိုင်နာမည်ကို Command က ၁၀၀% အလိုအလျောက် ပေးခြင်း ဖြစ်ပါသည်။**
+
+Terminal တွင် အောက်ပါ Symfony/Doctrine command ဖြင့် အလွယ်တကူ generate လုပ်နိုင်ပါသည်:
 
 ```bash
 docker compose exec ec-cube php bin/console doctrine:migrations:generate
@@ -98,14 +143,12 @@ docker compose exec ec-cube php bin/console doctrine:migrations:generate
 အထက်ပါ command ကို run လိုက်ပါက `app/DoctrineMigrations/` အောက်တွင် ဖိုင်အသစ်တစ်ခု အလိုအလျောက် ထွက်ပေါ်လာမည် ဖြစ်သည်:
 * ဥပမာ ဖိုင်အမည် - **`Version20260917083632.php`**
 * `Version` + **`2026`** (ခုနှစ်) + **`09`** (လ) + **`17`** (ရက်) + **`08`** (နာရီ) + **`36`** (မိနစ်) + **`32`** (စက္ကန့်)
-* Doctrine သည် ဤ Timestamp ကို ကြည့်၍ မည်သည့် Migration ကို အရင် run ရမည်၊ မည်သည့် Migration ကို နောက်မှ run ရမည်ဟူသော အစဉ်အတိုင်း (Execution Order) ကို ဆုံးဖြတ်ပါသည်။
+* Doctrine သည် PHP ၏ `date('YmdHis')` function ဖြင့် လက်ရှိ အချိန်အတိုင်း အလိုအလျောက် နာမည်ပေးခြင်း ဖြစ်ပြီး၊ ဤ Timestamp ကို ကြည့်၍ မည်သည့် Migration ကို အရင် run ရမည်၊ မည်သည့် Migration ကို နောက်မှ run ရမည်ဟူသော အစဉ်အတိုင်း (Execution Order) ကို ဆုံးဖြတ်ပါသည်။
 
 ---
 
 ## ၃။ `Version20260917083632.php` ၏ အလုပ်လုပ်ပုံကို တစ်ကြောင်းချင်း အသေးစိတ် ရှင်းလင်းချက်
 ### (Line-by-Line Code Breakdown of Migration File)
-
-အောက်ပါ code သည် ကျွန်ုပ်တို့၏ Favorite Product CSV Type နှင့် Columns များကို Database သို့ ထည့်သွင်းပေးသော Migration ဖိုင် ဖြစ်ပါသည်။ တစ်ကြောင်းချင်းစီ၏ အဓိပ္ပာယ်ကို အသေးစိတ် လေ့လာနိုင်ပါသည်:
 
 ```php
 1:  <?php
@@ -190,11 +233,11 @@ docker compose exec ec-cube php bin/console doctrine:migrations:generate
 
 ### တစ်ကြောင်းချင်း ရှင်းလင်းချက် (Line-by-Line Explanation):
 
-* **Line 3 (`declare(strict_types=1);`):** PHP တွင် Data types များကို တင်းကြပ်စွာ စစ်ဆေးစေခြင်း (ဥပမာ- string နေရာတွင် int အမှားထည့်ပါက error ပြခြင်း)။
+* **Line 3 (`declare(strict_types=1);`):** PHP တွင် Data types များကို တင်းကြပ်စွာ စစ်ဆေးစေခြင်း။
 * **Line 5 (`namespace DoctrineMigrations;`):** Migration ဖိုင်အားလုံး ထားရှိရမည့် စံ Namespace ဖြစ်သည်။
 * **Line 7-9 (`use ...;`):** အသုံးပြုမည့် Class များကို Import လုပ်ခြင်း:
   * `CustomCsvType`: ကျွန်ုပ်တို့ သတ်မှတ်ထားသော Constant Class (ID: 20)။
-  * `Schema`: Database ဇယားများ၊ ကော်လံများ ရှိမရှိ စစ်ဆေးပေးသည့် Doctrine DBAL အရာဝတ္ထု။
+  * `Schema`: Database ဇယားများ၊ ကော်လံများ ရှိမရှိ စစ်ဆေးပေးသည့် Doctrine DBAL Object။
   * `AbstractMigration`: Doctrine Migration တိုင်း အမွေဆက်ခံ (Inherit) ရမည့် Core Base Class။
 * **Line 11 (`final class Version... extends AbstractMigration`):** Migration Class အမည် ဖြစ်သည်။ Class နာမည်သည် ဖိုင်အမည်နှင့် အတိအကျ တူညီရပါမည်။
 * **Line 13-16 (`getDescription()`):** ဤ Migration ဖိုင်သည် ဘာအတွက် ရေးထားသနည်းဟူသော ဖော်ပြချက် (Description) ကို ပြန်ပေးသည်။ `bin/console doctrine:migrations:status` တွင် ဤစာသားကို မြင်တွေ့ရမည်။
@@ -203,7 +246,7 @@ docker compose exec ec-cube php bin/console doctrine:migrations:generate
   * Terminal တွင် `bin/console doctrine:migrations:migrate` ဟု run သည့်အခါ ဤ `up()` method ထဲရှိ ကုဒ်များ အလုပ်လုပ်ပြီး Database ထဲသို့ Data သွင်းခြင်း/ဇယားဆောက်ခြင်း ပြုလုပ်သည်။
   * **`Schema $schema` ဆိုတာ ဘာလဲ?** လက်ရှိ Database ၏ ဖွဲ့စည်းပုံ (Structure) ကို ကိုယ်စားပြုသော Object ဖြစ်သည်။
 * **Line 20 (`$csvTypeId = CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT;`):** ID နံပါတ် ၂၀ ကို variable ထဲ ထည့်ယူသည်။
-* **Line 23 (`if ($schema->hasTable('mtb_csv_type'))`):** Database ထဲတွင် `mtb_csv_type` ဇယား အမှန်တကယ် ရှိမရှိ စစ်ဆေးခြင်း (ဇယားမရှိဘဲ SQL run ပါက Error တက်မည်ကို ကာကွယ်ခြင်း)။
+* **Line 23 (`if ($schema->hasTable('mtb_csv_type'))`):** Database ထဲတွင် `mtb_csv_type` ဇယား အမှန်တကယ် ရှိမရှိ စစ်ဆေးခြင်း။
 * **Line 24-27 (`fetchOne(...)`):** ID: 20 ရှိပြီးသား ဟုတ်မဟုတ် စစ်ဆေးခြင်း (Duplicate Key Error မဖြစ်စေရန်)။
 * **Line 30-33 (`$this->addSql(...)` for `mtb_csv_type`):**
   * `INSERT INTO mtb_csv_type (id, name, sort_no, discriminator_type) VALUES (?, 'お気に入り商品CSV', ..., 'csvtype')`
@@ -223,7 +266,7 @@ docker compose exec ec-cube php bin/console doctrine:migrations:generate
 * **Line 54-59 (`foreach ... addSql` for `dtb_csv`):**
   * ကော်လံ (၆) ခုကို Loop ပတ်၍ `dtb_csv` ထဲသို့ တန်းစီထည့်သွင်းပေးခြင်း:
     * `csv_type_id`: ၂၀
-    * `entity_name`: `'Eccube\Entity\Product'` (မည်သည့် Entity ထဲမှ Data ယူမည်နည်း)
+    * `entity_name`: `'Eccube\Entity\Product'`
     * `field_name`: Entity ၏ Property အမည် (`id`, `name`, `Status`, `favorite_count`)
     * `disp_name`: CSV Header တန်းတွင် ဖော်ပြမည့် ဂျပန်အမည်
     * `sort_no`: ကော်လံ အစီအစဉ် (1, 2, 3, 4, 5, 6)
@@ -235,25 +278,232 @@ docker compose exec ec-cube php bin/console doctrine:migrations:generate
 
 ---
 
-## ၄။ နောက်ထပ် Custom CSV အသစ်များ ဖန်တီးလိုပါက မည်သည့်အချိန်တွင် DB Migration အသစ် ဖန်တီးရမည်နည်း?
-### (When to create a new DB Migration file for other CSVs?)
+## ၄။ FormType အမှန်တကယ် လိုအပ်ပါသလား? EC-CUBE Core Standard အရ စိစစ်ချက်
+### (Does it not require FormType? When is FormType needed vs not needed?)
 
-အကယ်၍ သင်သည် အနာဂတ်တွင် အခြားသော Feature အသစ်များအတွက် Custom CSV ထပ်မံ ဖန်တီးလိုပါက (ဥပမာ- **Product Review CSV**, **Stock Alert CSV**, သို့မဟုတ် **Daily Sales CSV**) အောက်ပါ အခြေအနေတွင် Migration ဖိုင်အသစ် ဖန်တီးရပါမည်:
+> **အနှစ်ချုပ် တိုတိုရှင်းရှင်း အဖြေ:**  
+> **(၁) CSV Download/Export သီးသန့် လုပ်ဆောင်ချက်အတွက်:** FormType လုံးဝ **မလိုအပ်ပါ** (EC-CUBE Core Product Export / Order Export တို့တွင်လည်း FormType မသုံးပါ)။  
+> **(၂) အကယ်၍ List Page တွင် Search Filter Box ထည့်သွင်းလိုပါက:** FormType **မဖြစ်မနေ လိုအပ်ပါသည်**။
 
-#### အခြေအနေ (When):
-> **Admin Panel ရှိ `/admin/setting/shop/csv` တွင် CSV Type အသစ်တစ်ခု ထပ်တိုးချင်သည့် အခါတိုင်း** Migration ဖိုင်အသစ် တစ်ခု မဖြစ်မနေ ဖန်တီးရပါမည်။
+EC-CUBE Core စံနှုန်းအရ အောက်ပါ အခြေအနေ (၂) ရပ်ကို ရှင်းလင်းစွာ ခွဲခြား နားလည်ထားရပါမည်:
 
-#### အဆင့်ဆင့် ဖန်တီးနည်း (Beginner Guide to Replicate):
-1. **Constant သတ်မှတ်ပါ:**  
-   `CustomCsvType.php` တွင် မသုံးရသေးသော ID အသစ်တစ်ခု ပေးပါ (ဥပမာ- `CSV_TYPE_PRODUCT_REVIEW = 21;`)။
-2. **Migration ဖိုင် Generate လုပ်ပါ:**  
-   `docker compose exec ec-cube php bin/console doctrine:migrations:generate`
-3. **`up()` method တွင် SQL ထည့်ပါ:**  
-   အထက်ဖော်ပြပါ `Version20260917083632.php` မှ code ကို copy ကူးပြီး:
-   * `id`: ၂၁
-   * `name`: `'商品レビューCSV'`
-   * `$items`: ထုတ်ပေးလိုသော Reviews ကော်လံများ စာရင်း ပြောင်းလဲပေးပါ။
-4. **Migration အား Run ပါ:**  
-   `docker compose exec ec-cube php bin/console doctrine:migrations:migrate --no-interaction`
-5. **ပြီးစီးပါပြီ!**  
-   Admin Panel ရှိ CSV Setting တွင် သင်ဖန်တီးလိုက်သော CSV Type အသစ်ချက်ချင်း ပေါ်လာမည် ဖြစ်ပါသည်။
+```mermaid
+flowchart TD
+    subgraph CaseA["အခြေအနေ (က) - Search Filter မပါသော သီးသန့် CSV Export (လက်ရှိ Flow)"]
+        A1["Step 1: Constant"] --> A2["Step 2: Migration"]
+        A2 --> A3["Step 3: Repository"]
+        A3 --> A4["Step 4: Controller (CSV Stream)"]
+        A4 --> A5["Step 5: Twig Template"]
+        NoteA["💡 အသုံးပြုသူဆီမှ Form Input လက်ခံစရာ မရှိသောကြောင့်<br/>FormType မလိုအပ်ဘဲ ရိုးရှင်းစွာ အလုပ်လုပ်သည်။"]
+    end
+
+    subgraph CaseB["အခြေအနေ (ခ) - Search Filter ပါဝင်သော စံ Admin Index + CSV Export"]
+        B1["Step 1: Constant"] --> B2["Step 2: Migration"]
+        B2 --> B3["Step 3: FormType (SearchFavoriteProductType)"]
+        B3 --> B4["Step 4: Repository (Filtered QueryBuilder)"]
+        B4 --> B5["Step 5: Controller (Form Handling & CSV Export)"]
+        B5 --> B6["Step 6: Twig Template (Search Card & Table)"]
+        NoteB["💡 အသုံးပြုသူက ID, Name စသည် ရိုက်ထည့်ရှာဖွေရန်<br/>FormType မဖြစ်မနေ လိုအပ်ပါသည်။"]
+    end
+```
+
+#### EC-CUBE Core Source Code သက်သေ (Core Standards Verification):
+* `src/Eccube/Controller/Admin/Product/ProductController.php` ၏ `export()` method ကို ကြည့်ပါက CSV Export အတွက် မည်သည့် FormType ကိုမျှ မသုံးဘဲ `CsvExportService` နှင့် `StreamedResponse` ဖြင့်သာ တိုက်ရိုက် ရေးသားထားသည်ကို တွေ့မြင်နိုင်ပါသည်။
+* အကယ်၍ သင်သည် ကုန်ပစ္စည်းစာရင်းတွင် Search Filter ထည့်လိုပါက `SearchFavoriteProductType.php` ကို ပြန်လည်အသုံးပြုနိုင်ပြီး၊ အကယ်၍ Search Filter မပါဘဲ Favorite စာရင်းပြသ၍ CSV ဒေါင်းလုဒ် ဆွဲရန်သာဆိုလျှင် FormType မလိုဘဲ အထက်ပါ ၅ ဆင့်ဖြင့် လုံလောက်စွာ အလုပ်လုပ်နိုင်ပါသည်။
+
+---
+
+## ၅။ Custom CSV နှင့် CSV Setting ချိတ်ဆက်ခြင်း အဆင့်ဆင့် ဖန်တီးနည်း (Clean Step-by-Step)
+
+အနာဂတ်တွင် မိမိကိုယ်တိုင် CSV အသစ်တစ်ခုခု ထပ်မံဖန်တီးလိုပါက အောက်ပါ စံအဆင့် (၅) ဆင့်အတိုင်း ဖိုင်လမ်းကြောင်း အတိအကျဖြင့် လုပ်ဆောင်နိုင်ပါသည်:
+
+```mermaid
+flowchart LR
+    Step1["အဆင့် ၁<br/>Constant ဖိုင်"] --> Step2["အဆင့် ၂<br/>Doctrine Migration"]
+    Step2 --> Step3["အဆင့် ၃<br/>Repository"]
+    Step3 --> Step4["အဆင့် ၄<br/>Controller (CSV Stream)"]
+    Step4 --> Step5["အဆင့် ၅<br/>Twig Template (Buttons)"]
+```
+
+---
+
+### အဆင့် (၁) - CSV Type ID အား Constant အဖြစ် သတ်မှတ်ခြင်း
+နံပါတ်များကို Hardcode မဖြစ်စေရန် Constant ဖိုင်တစ်ခုတွင် ကြေညာပေးရပါမည်။
+
+📁 **ဖိုင်လမ်းကြောင်း:** [app/Customize/Constant/CustomCsvType.php](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/Customize/Constant/CustomCsvType.php)
+```php
+<?php
+
+namespace Customize\Constant;
+
+class CustomCsvType
+{
+    /**
+     * mtb_csv_type တွင် သုံးမည့် ID အသစ်
+     */
+    public const CSV_TYPE_FAVOURITE_PRODUCT = 20;
+}
+```
+
+---
+
+### အဆင့် (၂) - Doctrine Migration ဖြင့် Database ထဲသို့ Type နှင့် Columns များ ထည့်သွင်းခြင်း
+Admin CSV Settings စာမျက်နှာ (`/admin/setting/shop/csv`) တွင် Dropdown ပေါ်လာစေရန်နှင့် Default Columns များ ပါဝင်စေရန် Migration ပြုလုပ်ရပါမည်။
+
+* **Command Run ရန်:**
+  ```bash
+  docker compose exec ec-cube php bin/console doctrine:migrations:generate
+  ```
+* ထွက်လာသော ဖိုင်တွင် `up()` method ကို ရေးသားပါ။
+
+📁 **ဖိုင်လမ်းကြောင်း:** `app/DoctrineMigrations/Version<TIMESTAMP>.php` (ဥပမာ- [Version20260917083632.php](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/DoctrineMigrations/Version20260917083632.php))
+```php
+public function up(Schema $schema): void
+{
+    $csvTypeId = CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT; // ID: 20
+
+    // ၁။ mtb_csv_type ထဲသို့ Type အသစ် ထည့်သွင်းခြင်း (Dropdown တွင် ပေါ်လာမည်)
+    $this->addSql(
+        "INSERT INTO mtb_csv_type (id, name, sort_no, discriminator_type) VALUES (?, 'お気に入り商品CSV', 20, 'csvtype')",
+        [$csvTypeId]
+    );
+
+    // ၂။ dtb_csv ထဲသို့ Output ထွက်မည့် Default Columns များ ထည့်သွင်းခြင်း
+    $items = [
+        ['id',             '商品ID',         1],
+        ['name',           '商品名',         2],
+        ['price02_min',    '販売価格(下限)', 3],
+        ['Status',         '公開状態',       4],
+        ['favorite_count', 'お気に入り数',   5],
+    ];
+
+    foreach ($items as [$fieldName, $dispName, $sortNo]) {
+        $this->addSql(
+            "INSERT INTO dtb_csv (csv_type_id, entity_name, field_name, reference_field_name, disp_name, sort_no, enabled, create_date, update_date, discriminator_type) VALUES (?, 'Eccube\\\\Entity\\\\Product', ?, NULL, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'csv')",
+            [$csvTypeId, $fieldName, $dispName, $sortNo]
+        );
+    }
+}
+```
+
+---
+
+### အဆင့် (၃) - Repository တွင် QueryBuilder တည်ဆောက်ခြင်း
+Memory အကုန်သက်သာစေရန် Array အစား `QueryBuilder` ကို return ပြန်ပေးရပါမည်။
+
+📁 **ဖိုင်လမ်းကြောင်း:** [app/Customize/Repository/FavouriteProductRepository.php](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/Customize/Repository/FavouriteProductRepository.php)
+```php
+public function getFavouriteDb(): QueryBuilder
+{
+    $qb = $this->createQueryBuilder('p');
+    $qb->addSelect('(SELECT COUNT(cfp.id) FROM ' . CustomerFavoriteProduct::class . ' cfp WHERE cfp.Product = p) AS HIDDEN favorite_count')
+       ->where('(SELECT COUNT(cfp2.id) FROM ' . CustomerFavoriteProduct::class . ' cfp2 WHERE cfp2.Product = p) > 0')
+       ->orderBy('favorite_count', 'DESC')
+       ->addOrderBy('p.id', 'DESC');
+
+    return $qb;
+}
+```
+
+---
+
+### အဆင့် (၄) - Controller တွင် CSV Streaming Export Action ရေးသားခြင်း
+`CsvExportService` ကို အသုံးပြု၍ Memory မပြည့်စေဘဲ Stream ဒေါင်းလုဒ် ဆွဲပေးခြင်း ဖြစ်ပါသည်။
+
+📁 **ဖိုင်လမ်းကြောင်း:** [app/Customize/Controller/Admin/Product/FavouriteProductController.php](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/Customize/Controller/Admin/Product/FavouriteProductController.php)
+```php
+/**
+ * @Route("/%eccube_admin_route%/product/favourite/export", name="admin_product_favourite_export", methods={"GET"})
+ */
+public function export(Request $request): StreamedResponse
+{
+    set_time_limit(0);
+    $this->entityManager->getConfiguration()->setSQLLogger(null);
+
+    $response = new StreamedResponse();
+    $response->setCallback(function () {
+        // ၁။ CSV Type ID: 20 ဖြင့် CsvExportService ကို စတင်ခြင်း
+        $this->csvExportService->initCsvType(CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT);
+
+        // ၂။ QueryBuilder ချိတ်ဆက်ခြင်း
+        $qb = $this->favouriteProductRepository->getFavouriteDb();
+        $this->csvExportService->setExportQueryBuilder($qb);
+
+        // ၃။ UTF-8 BOM ထည့်သွင်းခြင်း (Excel စာလုံးမပျက်စေရန်)
+        $fp = fopen('php://output', 'w');
+        fwrite($fp, "\xEF\xBB\xBF");
+        fclose($fp);
+
+        // ၄။ Header ခေါင်းစဉ်တန်း ထုတ်ပေးခြင်း
+        $this->csvExportService->exportHeader();
+
+        // ၅။ Data Rows များကို Stream ထုတ်ပေးခြင်း
+        $this->csvExportService->exportData(function (Product $Product, CsvExportService $csvService) {
+            $Csvs = $csvService->getCsvs();
+            $ExportCsvRow = new ExportCsvRow();
+
+            foreach ($Csvs as $Csv) {
+                $fieldName = $Csv->getFieldName();
+
+                if ($fieldName === 'favorite_count') {
+                    $ExportCsvRow->setData(count($Product->getCustomerFavoriteProducts()));
+                } elseif ($fieldName === 'Status') {
+                    $ExportCsvRow->setData($Product->getStatus() ? $Product->getStatus()->getName() : '');
+                } else {
+                    $ExportCsvRow->setData($csvService->getData($Csv, $Product));
+                }
+                $ExportCsvRow->pushData();
+            }
+
+            $csvService->fputcsv($ExportCsvRow->getRow());
+        });
+    });
+
+    $now = new \DateTime();
+    $filename = 'favourite_products_' . $now->format('YmdHis') . '.csv';
+    $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+    $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+
+    return $response;
+}
+```
+
+---
+
+### အဆင့် (၅) - Twig UI တွင် CSV Download နှင့် Setting ခလုတ်များ ချိတ်ဆက်ခြင်း
+Admin Page တွင် CSV Download ခလုတ် နှင့် Shop CSV Setting သို့ သွားမည့် ခလုတ် (၂) ခုကို ထည့်သွင်းပေးပါမည်။
+
+📁 **ဖိုင်လမ်းကြောင်း:** [app/template/admin/Product/product_favourite.twig](file:///Users/kyawwaiyan/Documents/my-Home-tech/eccube-4.3.1/app/template/admin/Product/product_favourite.twig)
+```twig
+<div class="btn-group" role="group">
+    <!-- CSV Download ခလုတ် -->
+    <a href="{{ url('admin_product_favourite_export') }}" class="btn btn-ec-regular">
+        <i class="fa fa-cloud-download me-1 text-secondary"></i><span>{{ 'admin.common.csv_download'|trans }}</span>
+    </a>
+    <!-- CSV Output Setting သို့ တိုက်ရိုက်သွားမည့် ခလုတ် (ID: 20 သို့ ချိတ်ဆက်ထားသည်) -->
+    <a href="{{ url('admin_setting_shop_csv', { id: constant('\\Customize\\Constant\\CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT') }) }}" class="btn btn-ec-regular">
+        <i class="fa fa-cog me-1 text-secondary"></i><span>{{ 'admin.setting.shop.csv_setting'|trans }}</span>
+    </a>
+</div>
+```
+
+---
+
+### အဆင့် (၆) - Terminal Commands များ Run ခြင်း
+
+ဖိုင်များ ဖန်တီးပြီးပါက အောက်ပါ command များကို အစဉ်လိုက် run ပေးရုံဖြင့် အရာအားလုံး အသင့်ဖြစ်သွားပါမည်:
+
+```bash
+# ၁။ Migration Run ၍ Database သို့ CSV Type နှင့် Columns သွင်းခြင်း
+docker compose exec -T ec-cube php bin/console doctrine:migrations:migrate --no-interaction
+
+# ၂။ Symfony Cache အား ရှင်းလင်းခြင်း
+docker compose exec -T -u www-data ec-cube php bin/console cache:clear --no-warmup
+
+# ၃။ Proxy Classes များ Generate လုပ်ခြင်း
+docker compose exec -T -u root ec-cube php bin/console eccube:generate:proxies
+
+# ၄။ Docker Cache Permissions ပြင်ဆင်ခြင်း
+docker compose exec -T -u root ec-cube chown -R www-data:www-data var/cache var/log
+docker compose exec -T -u root ec-cube chmod -R 777 var/cache var/log
+```
