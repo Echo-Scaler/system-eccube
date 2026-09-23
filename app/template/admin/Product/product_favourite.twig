@@ -1,0 +1,171 @@
+{#
+This file is part of EC-CUBE
+
+Copyright(c) EC-CUBE CO.,LTD. All Rights Reserved.
+
+http://www.ec-cube.co.jp/
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+#}
+{% extends '@admin/default_frame.twig' %}
+
+{% set menus = ['product', 'favourite_product'] %}
+
+{% block title %}{{ 'admin.favorite.favorite_products'|trans }}{% endblock %}
+{% block sub_title %}{{ 'admin.product.product_management'|trans }}{% endblock %}
+
+{% block stylesheet %}
+    <style>
+        .fav-product-img {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+        .fav-count-badge {
+            font-size: 0.875rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 600;
+        }
+    </style>
+{% endblock %}
+
+{% block main %}
+    <div class="c-contentsArea__cols">
+        <div class="c-contentsArea__primaryCol">
+            <div class="c-primaryCol">
+
+                <!-- Header Action & Title Bar -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="mb-1 fw-bold text-dark">
+                            <i class="fa fa-heart text-danger me-2"></i>{{ 'admin.favorite.favorite_products'|trans }}
+                        </h4>
+                        <p class="text-muted small mb-0">{{ 'admin.product.favorite_management'|trans }}</p>
+                    </div>
+                </div>
+
+                <!-- Products Table Card -->
+                <div class="card rounded border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 fw-bold text-dark">
+                                <i class="fa fa-list me-2 text-primary"></i>{{ 'admin.product.favorite_list'|trans }}
+                            </h6>
+                        </div>
+                        <div>
+                            {% if pagination and pagination.totalItemCount > 0 %}
+                                <span class="badge bg-primary px-3 py-2 fs-7">
+                                    {{ 'admin.common.count'|trans({'%count%': pagination.totalItemCount|number_format}) }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        {% if pagination and pagination.totalItemCount > 0 %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3 py-3" style="width: 70px;">ID</th>
+                                        <th class="py-3" style="width: 70px;">{{ 'admin.product.image__short'|trans }}</th>
+                                        <th class="py-3" style="min-width: 200px;">{{ 'admin.product.name'|trans }}</th>
+                                        <th class="py-3 text-end" style="width: 170px;">{{ 'admin.product.price'|trans }}</th>
+                                        <th class="py-3 text-center" style="width: 140px;">{{ 'admin.product.favorite_count'|trans }}</th>
+                                        <th class="pe-3 py-3 text-center" style="width: 120px;">{{ 'admin.product.display_status__short'|trans }}</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for Product in pagination %}
+                                        <tr>
+                                            <!-- Product ID -->
+                                            <td class="ps-3 fw-bold text-muted">{{ Product.id }}</td>
+
+                                            <!-- Product Image -->
+                                            <td>
+                                                <a href="{{ url('admin_product_product_edit', { id : Product.id }) }}">
+                                                    <img class="fav-product-img" src="{{ asset(Product.mainFileName|no_image_product, 'save_image') }}" alt="{{ Product.name }}">
+                                                </a>
+                                            </td>
+
+                                            <!-- Product Name & Code -->
+                                            <td>
+                                                <div>
+                                                    <a class="fw-bold text-decoration-none text-dark" href="{{ url('admin_product_product_edit', { id : Product.id }) }}">
+                                                        {{ Product.name }}
+                                                    </a>
+                                                </div>
+                                                {% if Product.code_min %}
+                                                    <div class="mt-1">
+                                                        <span class="badge bg-light text-dark border font-monospace">
+                                                            {{ Product.code_min }}{% if Product.code_min != Product.code_max %} {{ 'admin.common.separator__range'|trans }} {{ Product.code_max }}{% endif %}
+                                                        </span>
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Price with Range Display -->
+                                            <td class="text-end fw-bold text-dark text-nowrap">
+                                                {% if Product.hasProductClass %}
+                                                    {% if Product.getPrice02Min == Product.getPrice02Max %}
+                                                        {{ Product.getPrice02IncTaxMin|price }}
+                                                    {% else %}
+                                                        {{ Product.getPrice02IncTaxMin|price }} <span class="text-muted fw-normal">{{ 'admin.common.separator__range'|trans }}</span> {{ Product.getPrice02IncTaxMax|price }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    {{ Product.getPrice02IncTaxMin|price }}
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Favourite Counts -->
+                                            <td class="text-center">
+                                                <span class="fav-count-badge">
+                                                    <i class="fa fa-heart me-1"></i> {{ Product.CustomerFavoriteProducts|length|number_format }}
+                                                </span>
+                                            </td>
+
+                                            <!-- Status -->
+                                            <td class="pe-3 text-center">
+                                                {% if Product.Status and Product.Status.id == constant('Eccube\\Entity\\Master\\ProductStatus::DISPLAY_SHOW') %}
+                                                    <span class="badge bg-success">{{ Product.Status.name }}</span>
+                                                {% elseif Product.Status and Product.Status.id == constant('Eccube\\Entity\\Master\\ProductStatus::DISPLAY_HIDE') %}
+                                                    <span class="badge bg-secondary">{{ Product.Status.name }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-dark">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <!-- Empty State Card -->
+                            <div class="text-center py-5">
+                                <i class="fa fa-heart-o fa-3x text-muted mb-3 d-block"></i>
+                                <h5 class="text-muted fw-bold">お気に入り登録された商品がありません</h5>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Pagination Footer -->
+                {% if pagination and pagination.totalItemCount > 0 %}
+                    <div class="row justify-content-md-center mb-4">
+                        {% include "@admin/pager.twig" with {'pages': pagination.paginationData, 'routes': 'admin_product_favourite_page'} %}
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+{% endblock %}
