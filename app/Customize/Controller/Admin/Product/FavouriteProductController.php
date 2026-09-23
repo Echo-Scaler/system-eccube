@@ -14,13 +14,11 @@
 namespace Customize\Controller\Admin\Product;
 
 use Customize\Constant\CustomCsvType;
-use Customize\Form\Type\Admin\SearchFavoriteProductType;
 use Customize\Repository\FavouriteProductRepository;
 use Eccube\Controller\AbstractController;
 use Eccube\Entity\ExportCsvRow;
 use Eccube\Entity\Product;
 use Eccube\Service\CsvExportService;
-use Eccube\Util\FormUtil;
 use Knp\Component\Pager\PaginatorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\HttpFoundation\Request;
@@ -67,13 +65,13 @@ class FavouriteProductController extends AbstractController
     }
 
     /**
-     * Admin အကြိုက်ဆုံး ကုန်ပစ္စည်းများ စာရင်းနှင့် Search Form ပြသခြင်း
+     * Admin အကြိုက်ဆုံး ကုန်ပစ္စည်းများ စာရင်း ပြသခြင်း
      * (Supports both /favourite and /favorite route aliases)
      *
-     * @Route("/%eccube_admin_route%/product/favourite", name="admin_product_favourite", methods={"GET", "POST"})
-     * @Route("/%eccube_admin_route%/product/favourite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favourite_page", methods={"GET", "POST"})
-     * @Route("/%eccube_admin_route%/product/favorite", name="admin_product_favorite", methods={"GET", "POST"})
-     * @Route("/%eccube_admin_route%/product/favorite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favorite_page", methods={"GET", "POST"})
+     * @Route("/%eccube_admin_route%/product/favourite", name="admin_product_favourite", methods={"GET"})
+     * @Route("/%eccube_admin_route%/product/favourite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favourite_page", methods={"GET"})
+     * @Route("/%eccube_admin_route%/product/favorite", name="admin_product_favorite", methods={"GET"})
+     * @Route("/%eccube_admin_route%/product/favorite/page/{page_no}", requirements={"page_no" = "\d+"}, name="admin_product_favorite_page", methods={"GET"})
      * @Template("@admin/Product/product_favourite.twig")
      *
      * @param Request $request
@@ -82,46 +80,28 @@ class FavouriteProductController extends AbstractController
      */
     public function index(Request $request, $page_no = null): array
     {
-        // ၁။ Search Form တည်ဆောက်ခြင်း
-        $searchForm = $this->createForm(SearchFavoriteProductType::class);
-        $searchData = [];
-
-        if ($request->getMethod() === 'POST') {
-            $searchForm->handleRequest($request);
-            if ($searchForm->isSubmitted() && $searchForm->isValid()) {
-                $searchData = $searchForm->getData();
-                $page_no = 1;
-                $this->session->set('eccube.admin.product.favourite.search', FormUtil::getViewData($searchForm));
-                $this->session->set('eccube.admin.product.favourite.search.page_no', $page_no);
-            }
+        if (null !== $page_no) {
+            $this->session->set('eccube.admin.product.favourite.page_no', (int) $page_no);
         } else {
-            if (null !== $page_no) {
-                $this->session->set('eccube.admin.product.favourite.search.page_no', (int) $page_no);
-            } else {
-                $page_no = $this->session->get('eccube.admin.product.favourite.search.page_no', 1);
-            }
-
-            $viewData = $this->session->get('eccube.admin.product.favourite.search', []);
-            $searchData = FormUtil::submitAndGetData($searchForm, $viewData);
+            $page_no = $this->session->get('eccube.admin.product.favourite.page_no', 1);
         }
 
         $page_count = $this->eccubeConfig->get('eccube_default_page_count');
 
-        // ၂။ Search Criteria ဖြင့် Filtered QueryBuilder ရယူခြင်း
-        $qb = $this->favouriteProductRepository->getFavouriteDb($searchData);
+        // Favorite ကုန်ပစ္စည်းများ QueryBuilder ရယူခြင်း
+        $qb = $this->favouriteProductRepository->getFavouriteDb();
 
-        // ၃။ KnpPaginator ဖြင့် Pagination ပြုလုပ်ခြင်း
+        // KnpPaginator ဖြင့် Pagination ပြုလုပ်ခြင်း
         $pagination = $this->paginator->paginate($qb, $page_no, $page_count, ['wrap-queries' => true]);
 
         return [
-            'searchForm' => $searchForm->createView(),
             'pagination' => $pagination,
             'page_no' => $page_no,
         ];
     }
 
     /**
-     * Admin Favourite Product CSV Export (Search Filtered)
+     * Admin Favourite Product CSV Export
      * (Supports both /favourite/export and /favorite/export route aliases)
      *
      * @Route("/%eccube_admin_route%/product/favourite/export", name="admin_product_favourite_export", methods={"GET"})
@@ -140,16 +120,11 @@ class FavouriteProductController extends AbstractController
             // ၁။ Custom CSV Type (ID: 20) ဖြင့် CsvExportService ကို Initialize လုပ်ခြင်း
             $this->csvExportService->initCsvType(CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT);
 
-            // ၂။ Session မှ လက်ရှိ Search Criteria ကို ရယူ၍ Filter ပြုလုပ်ခြင်း
-            $searchForm = $this->createForm(SearchFavoriteProductType::class);
-            $viewData = $this->session->get('eccube.admin.product.favourite.search', []);
-            $searchData = FormUtil::submitAndGetData($searchForm, $viewData);
-
-            // ၃။ Filtered QueryBuilder ချိတ်ဆက်ခြင်း
-            $qb = $this->favouriteProductRepository->getFavouriteDb($searchData);
+            // ၂။ QueryBuilder ချိတ်ဆက်ခြင်း
+            $qb = $this->favouriteProductRepository->getFavouriteDb();
             $this->csvExportService->setExportQueryBuilder($qb);
 
-            // ၄။ UTF-8 BOM ထည့်သွင်းခြင်း (Excel encoding safe)
+            // ၃။ UTF-8 BOM ထည့်သွင်းခြင်း (Excel encoding safe)
             $fp = fopen('php://output', 'w');
             fwrite($fp, "\xEF\xBB\xBF");
             fclose($fp);
