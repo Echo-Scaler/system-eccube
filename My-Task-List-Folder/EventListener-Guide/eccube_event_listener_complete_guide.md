@@ -14,6 +14,12 @@
 6. [EventListener အသစ်တစ်ခု တည်ဆောက်ရန် စံနှုန်းပြည့် အဆင့် (၅) ဆင့် (Standard 5-Step Implementation)](#၆-eventlistener-အသစ်တစ်ခု-တည်ဆောက်ရန်-စံနှုန်းပြည့်-အဆင့်-၅-ဆင့်-standard-5-step-implementation)
 7. [အသုံးအများဆုံး EC-CUBE Events စာရင်း (Popular EC-CUBE Events Cheat Sheet)](#၇-အသုံးအများဆုံး-ec-cube-events-စာရင်း-popular-ec-cube-events-cheat-sheet)
 8. [Junior Developer များ မကြာခဏ မှားတတ်သော အချက်များနှင့် ဖြေရှင်းနည်းများ (Common Pitfalls & Best Practices)](#၈-junior-developer-များ-မကြာခဏ-မှားတတ်သော-အချက်များနှင့်-ဖြေရှင်းနည်းများ-common-pitfalls--best-practices)
+9. [ကဏ္ဍအသီးသီး (Different Sectors) တွင် အသုံးပြုပုံ လက်တွေ့ ဥပမာများ (Real-world Sector Usages)](#၉-ကဏ္ဍအသီးသီး-different-sectors-တွင်-အသုံးပြုပုံ-လက်တွေ့-ဥပမာများ-real-world-sector-usages)
+10. [အခြားကဏ္ဍ (Different Sectors) များတွင် အသုံးပြုပါက ဖန်တီးပုံ လုပ်ငန်းစဉ် အတူတူပဲလား? (Is the Process the Same Across Different Sectors?)](#၁၀-အခြားကဏ္ဍ-different-sectors-များတွင်-အသုံးပြုပါက-ဖန်တီးပုံ-လုပ်ငန်းစဉ်-အတူတူပဲလား-is-the-process-the-same-across-different-sectors)
+11. [EventListener ဖန်တီးရာတွင် မဖြစ်မနေ လိုအပ်သည့် ကြိုတင်ပြင်ဆင်မှုများ (Prerequisites & Discovery Checklist)](#၁၁-eventlistener-ဖန်တီးရာတွင်-မဖြစ်မနေ-လိုအပ်သည့်-ကြိုတင်ပြင်ဆင်မှုများ-prerequisites--discovery-checklist)
+12. [Event Lifecycle Timing နားလည်ခြင်း (INITIALIZE vs COMPLETE vs RENDER)](#၁၂-event-lifecycle-timing-နားလည်ခြင်း-initialize-vs-complete-vs-render)
+13. [$event->setResponse() ဖြင့် စနစ်လမ်းကြောင်း လွှဲပြောင်းထိန်းချုပ်ခြင်း (Flow Redirection & Guards)](#၁၃-eventsetresponse-ဖြင့်-စနစ်လမ်းကြောင်း-လွှဲပြောင်းထိန်းချုပ်ခြင်း-flow-redirection--guards)
+14. [EC-CUBE စတင်လေ့လာသူများ မဖြစ်မနေ သိရှိရမည့် ရွှေစည်းမျဉ်း (၁၀) ချက် (10 Must-Know Golden Rules for Beginners)](#၁၄-ec-cube-စတင်လေ့လာသူများ-မဖြစ်မနေ-သိရှိရမည့်-ရွှေစည်းမျဉ်း-၁၀-ချက်-10-must-know-golden-rules-for-beginners)
 
 ---
 
@@ -259,23 +265,418 @@ Junior Developer များ လက်တွေ့ လုပ်ငန်းခ�
 ## ၈။ Junior Developer များ မကြာခဏ မှားတတ်သော အချက်များနှင့် ဖြေရှင်းနည်းများ (Common Pitfalls & Best Practices)
 
 ### ၁။ Null Check ပြုလုပ်ရန် မေ့လျော့ခြင်း (Missing Null Check)
-* **အမှား:** `$Product = $event->getArgument('Product');` ဟု ယူပြီးနောက် `$Product->getId();` ဟု တိုက်ရိုက် ခေါ်ယူခြင်း။ အကယ်၍ ကုန်ပစ္စည်း မရှိခဲ့ပါက `Call to a member function getId() on null` Fatal Error တက်ပါမည်။
+* **အမှား:** `$Product = $event->getArgument('Product');` ဟု ယူပြီးနောက် `$Product->getId();` ဟု တိုက်ရိုက် ခေါ်ယူခြင်း။ အကယ်၍ ကုန်ပစ္စည်း မရှိခဲ့ပါက သို့မဟုတ် Argument နာမည် စာလုံးပေါင်း မှားယွင်းပါက `Call to a member function getId() on null` Fatal Error တက်ပါမည်။
 * **မှန်ကန်သော နည်းလမ်း:**
   ```php
   $Product = $event->getArgument('Product');
-  if ($Product instanceof Product) {
+  if ($Product instanceof \Eccube\Entity\Product) {
       // ကုန်ပစ္စည်း အမှန်တကယ် ရှိမှသာ ဆက်လုပ်ပါ
+      $productId = $Product->getId();
   }
   ```
 
 ### ၂။ Cache Clear ပြုလုပ်ရန် မေ့ကျန်ခဲ့ခြင်း (Forgot Cache Clear)
 * **ပြဿနာ:** Listener အသစ် ရေးပြီးသော်လည်း စနစ်က လုံးဝ အလုပ်မလုပ်ခြင်း။
-* **အကြောင်းရင်း:** Symfony သည် Event Subscribers စာရင်းကို Cache ပြုလုပ်ထားသောကြောင့် ဖြစ်သည်။ Listener အသစ် ရေးပြီးတိုင်း သို့မဟုတ် `getSubscribedEvents()` ပြင်ပြီးတိုင်း `bin/console cache:clear --no-warmup` ကို မဖြစ်မနေ run ပေးရပါမည်။
+* **အကြောင်းရင်း:** Symfony သည် Event Subscribers စာရင်းကို Cache ပြုလုပ်ထားသောကြောင့် ဖြစ်သည်။ Listener အသစ် ရေးပြီးတိုင်း သို့မဟုတ် `getSubscribedEvents()` ပြင်ပြီးတိုင်း အောက်ပါ Command ကို မဖြစ်မနေ run ပေးရပါမည်:
+  ```bash
+  docker compose exec ec-cube bin/console cache:clear --no-warmup
+  ```
 
 ### ၃။ Infinite Loop (အဆုံးမရှိ သံသရာလည်ခြင်း)
-* **သတိပြုရန်:** Order Edit Event ထဲတွင် Order အား ပြန်လည် Update ပြုလုပ်ပြီး ထပ်မံ Save ပါက အဆိုပါ Order Edit Event ကို ထပ်မံ Trigger ဖြစ်စေပြီး Infinite Loop ပတ်သွားတတ်ပါသည်။ EventListener ထဲတွင် Data Update ပြုလုပ်ရာ၌ ဂရုပြုရပါမည်။
+* **သတိပြုရန်:** Order Edit Event ထဲတွင် Order အား ပြန်လည် Update ပြုလုပ်ပြီး ထပ်မံ Save ပါက အဆိုပါ Order Edit Event ကို ထပ်မံ Trigger ဖြစ်စေပြီး Infinite Loop ပတ်သွားတတ်ပါသည်။ EventListener ထဲတွင် Data Update ပြုလုပ်ရာ၌ Event အမည်နှင့် Trigger ဖြစ်မည့် အခြေအနေကို သေချာစွာ စိစစ်ရပါမည်။
+
+### ၄။ Guest User (Login မဝင်ထားသူ) ကို ထည့်မတွက်မိခြင်း
+* **အမှား:** `$Customer = $this->security->getUser();` ဟု ယူပြီးနောက် `$Customer->getId()` ဟု ချက်ချင်း သုံးစွဲခြင်း။
+* **သတိပြုရန်:** ဝယ်ယူသူသည် Guest အဖြစ် Login မဝင်ဘဲ ဈေးဝယ်နေပါက `$this->security->getUser()` သည် `null` သာ ဖြစ်ပါမည်။ ထို့ကြောင့် `if ($Customer instanceof \Eccube\Entity\Customer)` ဟု အမြဲတမ်း စစ်ဆေးပေးရပါမည်။
 
 ---
 
-> **နိဂုံးချုပ် စည်းမျဉ်း:**  
-> EC-CUBE တွင် မည်သည့် Custom Logic ကိုမဆို တည်ဆောက်သည့်အခါ **"Core Controller ကို လုံးဝ မပြင်ရ၊ EventListener / EventSubscriber ဖြင့်သာ ချိတ်ဆက်ဆောင်ရွက်ရမည်"** ဟူသော စည်းမျဉ်းကို အမြဲတစေ လိုက်နာကျင့်သုံးရမည် ဖြစ်ပါသည်။
+## ၉။ ကဏ္ဍအသီးသီး (Different Sectors) တွင် အသုံးပြုပုံ လက်တွေ့ ဥပမာများ (Real-world Sector Usages)
+
+EC-CUBE စနစ်ကြီးတစ်ခုလုံးတွင် လုပ်ငန်းကဏ္ဍ (Sectors) အလိုက် EventListener များကို မည်သို့ အသုံးချနိုင်သည်ကို အောက်ပါ လက်တွေ့ နမူနာများဖြင့် လေ့လာနိုင်ပါသည်:
+
+### (က) Shopping / Checkout Sector (အော်ဒါတင်ခြင်းနှင့် ငွေချေခြင်း ကဏ္ဍ)
+* **မည်သည့်အချိန်တွင် သုံးသနည်း:** ဝယ်ယူသူက ကုန်ပစ္စည်းများ ရွေးချယ်ပြီးနောက် "အော်ဒါ အတည်ပြုသည်" ခလုတ်ကို နှိပ်လိုက်ချိန် (`FRONT_SHOPPING_CONFIRM_COMPLETE`)။
+* **လက်တွေ့ အသုံးချမှုများ:**
+  1. အော်ဒါအသစ် ရောက်ရှိလာကြောင်း ဆိုင်မန်နေဂျာထံ LINE / Telegram / Slack သို့ Webhook အလိုအလျောက် ပို့ခြင်း။
+  2. ဝယ်ယူသူ၏ စုစုပေါင်း ကျသင့်ငွေပေါ် မူတည်၍ ၅% Loyalty Points အလိုအလျောက် တွက်ချက် ထည့်ပေးခြင်း။
+  3. ပြင်ပ သိုလှောင်ရုံစနစ် (Third-party WMS / ERP) သို့ အော်ဒါဒေတာကို API ဖြင့် အလိုအလျောက် ပေးပို့ခြင်း။
+
+```php
+// app/Customize/EventListener/OrderCompleteSubscriber.php
+namespace Customize\EventListener;
+
+use Eccube\Event\EccubeEvents;
+use Eccube\Event\EventArgs;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+class OrderCompleteSubscriber implements EventSubscriberInterface
+{
+    protected $logger;
+
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
+
+    public static function getSubscribedEvents()
+    {
+        return [
+            EccubeEvents::FRONT_SHOPPING_CONFIRM_COMPLETE => 'onOrderComplete',
+        ];
+    }
+
+    public function onOrderComplete(EventArgs $event)
+    {
+        /** @var \Eccube\Entity\Order $Order */
+        $Order = $event->getArgument('Order');
+
+        if ($Order) {
+            $this->logger->info(sprintf('အော်ဒါအသစ် ရောက်ရှိပါသည် - Order ID: %d, စုစုပေါင်းငွေ: %s ကျပ်', $Order->getId(), number_format($Order->getTotal())));
+            // ဤနေရာတွင် LINE Notify သို့မဟုတ် External ERP API သို့ ချိတ်ဆက်နိုင်ပါသည်
+        }
+    }
+}
+```
+
+---
+
+### (ခ) Customer / Auth Sector (ဝယ်ယူသူ အကောင့်နှင့် လုံခြုံရေး ကဏ္ဍ)
+* **မည်သည့်အချိန်တွင် သုံးသနည်း:** အသုံးပြုသူ အသစ် စတင် အကောင့်ဖွင့်ပြီးချိန် (`FRONT_ENTRY_COMPLETE`) သို့မဟုတ် စကားဝှက် ပြောင်းလဲပြီးချိန်။
+* **လက်တွေ့ အသုံးချမှုများ:**
+  1. အကောင့်အသစ် ဖွင့်လှစ်သူများအား Welcome Coupon Code သို့မဟုတ် ကြိုဆိုလက်ဆောင် 1,000 Points အလိုအလျောက် ပေးအပ်ခြင်း။
+  2. လုံခြုံရေး စောင့်ကြည့်ရန်အတွက် အကောင့်ဖွင့်သည့် IP Address နှင့် Browser အချက်အလက်များကို Security Log တွင် မှတ်တမ်းတင်ခြင်း။
+
+```php
+// app/Customize/EventListener/CustomerRegistrationSubscriber.php
+namespace Customize\EventListener;
+
+use Eccube\Event\EccubeEvents;
+use Eccube\Event\EventArgs;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+class CustomerRegistrationSubscriber implements EventSubscriberInterface
+{
+    protected $logger;
+
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
+
+    public static function getSubscribedEvents()
+    {
+        return [
+            EccubeEvents::FRONT_ENTRY_COMPLETE => 'onCustomerRegister',
+        ];
+    }
+
+    public function onCustomerRegister(EventArgs $event)
+    {
+        /** @var \Eccube\Entity\Customer $Customer */
+        $Customer = $event->getArgument('Customer');
+
+        if ($Customer) {
+            $this->logger->info(sprintf('ဝယ်ယူသူအသစ် စာရင်းသွင်းပြီးပါပြီ: %s (ID: %d)', $Customer->getEmail(), $Customer->getId()));
+            // ဤနေရာတွင် Customer အား Welcome Point ပေးခြင်း logic ရေးသားနိုင်ပါသည်
+        }
+    }
+}
+```
+
+---
+
+### (ဂ) Cart Sector (ဈေးဝယ်လှည်း ကဏ္ဍ)
+* **မည်သည့်အချိန်တွင် သုံးသနည်း:** ဝယ်ယူသူက ကုန်ပစ္စည်းကို ဈေးဝယ်လှည်း (Cart) ထဲသို့ ထည့်သွင်းလိုက်ချိန် (`FRONT_PRODUCT_CART_ADD_COMPLETE`)။
+* **လက်တွေ့ အသုံးချမှုများ:**
+  1. ဝယ်ယူသူ Cart ထဲ ထည့်လိုက်သော ပစ္စည်း စုစုပေါင်း ပမာဏ ကန့်သတ်ချက် (Max Purchase Limit) ကျော်လွန်ခြင်း ရှိမရှိ စစ်ဆေးခြင်း။
+  2. စုစုပေါင်း တန်ဖိုး သတ်မှတ်ငွေပမာဏ ကျော်ပါက အထူး Promotion လက်ဆောင်ပစ္စည်းကို Cart ထဲသို့ အလိုအလျောက် ထည့်ပေးခြင်း (Auto-add Free Gift)။
+
+```php
+// app/Customize/EventListener/CartAddSubscriber.php
+namespace Customize\EventListener;
+
+use Eccube\Event\EccubeEvents;
+use Eccube\Event\EventArgs;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+class CartAddSubscriber implements EventSubscriberInterface
+{
+    protected $logger;
+
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
+
+    public static function getSubscribedEvents()
+    {
+        return [
+            EccubeEvents::FRONT_PRODUCT_CART_ADD_COMPLETE => 'onCartAdd',
+        ];
+    }
+
+    public function onCartAdd(EventArgs $event)
+    {
+        $Product = $event->getArgument('Product');
+        $ProductClass = $event->getArgument('ProductClass');
+
+        if ($Product) {
+            $this->logger->info(sprintf('Cart ထဲသို့ ပစ္စည်း ထည့်သွင်းပါသည်: Product ID %d', $Product->getId()));
+        }
+    }
+}
+```
+
+---
+
+### (ဃ) Admin Panel Sector (စီမံခန့်ခွဲသူ နောက်ကွယ် ကဏ္ဍ)
+* **မည်သည့်အချိန်တွင် သုံးသနည်း:** ဆိုင်မန်နေဂျာ (Admin) က ကုန်ပစ္စည်း အသစ်တင်ခြင်း သို့မဟုတ် ဈေးနှုန်း ပြင်ဆင်ခြင်း ပြီးဆုံးချိန် (`ADMIN_PRODUCT_EDIT_COMPLETE`)။
+* **လက်တွေ့ အသုံးချမှုများ:**
+  1. မည်သည့် Admin ဝန်ထမ်းက မည်သည့် ကုန်ပစ္စည်းကို ဈေးနှုန်းမည်မျှ ပြောင်းလဲသွားသည်ကို သိမ်းဆည်းသည့် Audit Trail Log ရေးထိုးခြင်း။
+  2. ကုန်ပစ္စည်း အချက်အလက် ပြောင်းလဲသွားသဖြင့် Frontend မျက်နှာပြင်တွင် ချက်ချင်း update ဖြစ်စေရန် Frontend Cache ကို အလိုအလျောက် ရှင်းလင်းပေးခြင်း (Auto Cache Purge)။
+
+```php
+// app/Customize/EventListener/AdminProductAuditSubscriber.php
+namespace Customize\EventListener;
+
+use Eccube\Event\EccubeEvents;
+use Eccube\Event\EventArgs;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Security\Core\Security;
+
+class AdminProductAuditSubscriber implements EventSubscriberInterface
+{
+    protected $logger;
+    protected $security;
+
+    public function __construct(LoggerInterface $logger, Security $security)
+    {
+        $this->logger = $logger;
+        $this->security = $security;
+    }
+
+    public static function getSubscribedEvents()
+    {
+        return [
+            EccubeEvents::ADMIN_PRODUCT_EDIT_COMPLETE => 'onProductEditComplete',
+        ];
+    }
+
+    public function onProductEditComplete(EventArgs $event)
+    {
+        /** @var \Eccube\Entity\Product $Product */
+        $Product = $event->getArgument('Product');
+        $AdminMember = $this->security->getUser();
+
+        if ($Product && $AdminMember) {
+            $this->logger->info(sprintf(
+                'Admin Member "%s" (ID: %d) က ကုန်ပစ္စည်း "%s" (ID: %d) ကို ပြင်ဆင်ပြီးစီးခဲ့သည်',
+                $AdminMember->getUsername(),
+                $AdminMember->getId(),
+                $Product->getName(),
+                $Product->getId()
+            ));
+        }
+    }
+}
+```
+
+---
+
+## ၁၀။ အခြားကဏ္ဍ (Different Sectors) များတွင် အသုံးပြုပါက ဖန်တီးပုံ လုပ်ငန်းစဉ် အတူတူပဲလား? (Is the Process the Same Across Different Sectors?)
+
+**အဖြေမှာ: လုံးဝ (၁၀၀%) တစ်ထပ်တည်း အတူတူပင် ဖြစ်ပါသည်! (Yes, 100% Identical Process!)**
+
+Shopping ကဏ္ဍ၊ Customer ကဏ္ဍ၊ Cart ကဏ္ဍ၊ Product ကဏ္ဍ သို့မဟုတ် Admin ကဏ္ဍ မည်သည့်ကဏ္ဍအတွက်မဆို EventListener တည်ဆောက်သည့် **စံနှုန်းပြည့် နည်းလမ်းနှင့် အဆင့်များ (Steps) သည် လုံးဝ အတူတူပင်** ဖြစ်ပါသည်။
+
+### နှိုင်းယှဉ်ချက် ဇယား (Sector Comparison Table):
+
+| အဆင့် / သတ်မှတ်ချက် | Favorite Sector (လက်ရှိ) | Shopping / Order Sector | Customer / Auth Sector | Admin Sector | တူ/မတူ |
+|:---|:---|:---|:---|:---|:---:|
+| **၁။ ဖိုင်တည်နေရာ** | `app/Customize/EventListener/` | `app/Customize/EventListener/` | `app/Customize/EventListener/` | `app/Customize/EventListener/` | **တူညီသည်** |
+| **၂။ Interface** | `implements EventSubscriberInterface` | `implements EventSubscriberInterface` | `implements EventSubscriberInterface` | `implements EventSubscriberInterface` | **တူညီသည်** |
+| **၃။ DI Constructor** | Constructor Injection ဖြင့် Service ရယူသည် | Constructor Injection ဖြင့် Service ရယူသည် | Constructor Injection ဖြင့် Service ရယူသည် | Constructor Injection ဖြင့် Service ရယူသည် | **တူညီသည်** |
+| **၄။ Event Registration** | `getSubscribedEvents()` Method ရေးသားရသည် | `getSubscribedEvents()` Method ရေးသားရသည် | `getSubscribedEvents()` Method ရေးသားရသည် | `getSubscribedEvents()` Method ရေးသားရသည် | **တူညီသည်** |
+| **၅။ Callback Argument** | `(EventArgs $event)` ကို လက်ခံရရှိသည် | `(EventArgs $event)` ကို လက်ခံရရှိသည် | `(EventArgs $event)` ကို လက်ခံရရှိသည် | `(EventArgs $event)` ကို လက်ခံရရှိသည် | **တူညီသည်** |
+| **၆။ Cache Clear** | `bin/console cache:clear --no-warmup` | `bin/console cache:clear --no-warmup` | `bin/console cache:clear --no-warmup` | `bin/console cache:clear --no-warmup` | **တူညီသည်** |
+
+### ကွာခြားသွားသည့် အချက် (၂) ချက်တည်းသာ ရှိပါသည်:
+1. **Event Constant အမည် ကွာခြားခြင်း:**  
+   * Favorite အတွက်ဆိုလျှင်: `EccubeEvents::FRONT_PRODUCT_FAVORITE_ADD_COMPLETE`
+   * Order အတွက်ဆိုလျှင်: `EccubeEvents::FRONT_SHOPPING_CONFIRM_COMPLETE`
+   * Customer အတွက်ဆိုလျှင်: `EccubeEvents::FRONT_ENTRY_COMPLETE`
+   * Admin အတွက်ဆိုလျှင်: `EccubeEvents::ADMIN_PRODUCT_EDIT_COMPLETE`
+2. **Container Box (`EventArgs`) ထဲမှ ထုတ်ယူမည့် Data Key ကွာခြားခြင်း:**  
+   * Favorite အတွက်: `$event->getArgument('Product')`
+   * Order အတွက်: `$event->getArgument('Order')`
+   * Customer အတွက်: `$event->getArgument('Customer')`
+
+ထို့ကြောင့် မည်သည့်ကဏ္ဍတွင်မဆို စံနှုန်းပြည့် အဆင့် (၅) ဆင့်ကိုသာ မှတ်သားထားပါက မည်သည့် Feature ကိုမဆို အလွယ်တကူ တည်ဆောက်နိုင်မည် ဖြစ်ပါသည်။
+
+---
+
+## ၁၁။ EventListener ဖန်တီးရာတွင် မဖြစ်မနေ လိုအပ်သည့် ကြိုတင်ပြင်ဆင်မှုများ (Prerequisites & Discovery Checklist)
+
+EventListener တစ်ခု မရေးမီ Developer တစ်ယောက်အနေဖြင့် အောက်ပါ အချက် (၄) ချက်ကို ကြိုတင် စစ်ဆေးရှာဖွေထားရပါမည်:
+
+```mermaid
+graph TD
+    A[၁။ Event အမည် ရှာဖွေခြင်း<br>EccubeEvents.php] --> B[၂။ ပေးပို့မည့် Argument များ စစ်ဆေးခြင်း<br>Core Controller ကို ကြည့်ရှုခြင်း]
+    B --> C[၃။ လိုအပ်မည့် Service များကို သတ်မှတ်ခြင်း<br>Logger, Mail, Repository, Security]
+    C --> D[၄။ EventListener ရေးသားပြီး Cache Clear ပြုလုပ်ခြင်း]
+```
+
+### အချက် (၁) - Event Constant နာမည် အတိအကျ သိရှိခြင်း:
+`src/Eccube/Event/EccubeEvents.php` ဖိုင်ထဲတွင် မိမိ လိုချင်သော စနစ်လှုပ်ရှားမှုနှင့် ကိုက်ညီသည့် Constant နာမည်ကို ရှာဖွေပါ။
+
+### အချက် (၂) - ထို Event က မည်သည့် Data များ ပေးပို့သည်ကို စစ်ဆေးခြင်း:
+အဆိုပါ Event အား Core Controller ထဲတွင် မည်သို့ Dispatch လုပ်ထားသည်ကို ရှာဖွေကြည့်ပါ။  
+ဥပမာ- `ProductController.php` ထဲတွင် အောက်ပါအတိုင်း ရေးထားပါက:
+```php
+$event = new EventArgs(
+    [
+        'Product' => $Product,
+    ],
+    $request
+);
+$this->eventDispatcher->dispatch($event, EccubeEvents::FRONT_PRODUCT_FAVORITE_ADD_COMPLETE);
+```
+ဤနေရာတွင် `['Product' => $Product]` ဟု ရေးထားသောကြောင့် မိမိ၏ Listener တွင် `$event->getArgument('Product')` ဟု ပြန်လည် ထုတ်ယူနိုင်ကြောင်း အသေအချာ သိရှိနိုင်ပါသည်။
+
+### အချက် (၃) - Constructor တွင် ထည့်သွင်းရမည့် Service များကို ကြိုတင် စဉ်းစားခြင်း:
+* Database သို့ အသစ်သိမ်းဆည်းလိုပါက: `EntityManagerInterface $entityManager` သို့မဟုတ် မိမိ၏ Custom Repository
+* စနစ်မှတ်တမ်း ရေးလိုပါက: `LoggerInterface $logger`
+* လက်ရှိ Login ဝင်ထားသူကို သိလိုပါက: `Security $security`
+* Email အလိုအလျောက် ပို့လိုပါက: `MailService $mailService`
+
+### အချက် (၄) - စနစ်လမ်းကြောင်း လွှဲပြောင်းရန် (Redirect) လို/မလို ဆုံးဖြတ်ခြင်း:
+* သာမန် မှတ်တမ်းသိမ်းခြင်း ဖြစ်ပါက ဘာမှ return ပြန်စရာ မလိုပါ။
+* အကယ်၍ စစ်ဆေးချက် မအောင်မြင်၍ အခြား Page သို့ လမ်းလွှဲလိုပါက `$event->setResponse(new RedirectResponse(...))` ကို သုံးရပါမည် (အခန်း ၁၃ တွင် ကြည့်ပါ)။
+
+---
+
+## ၁၂။ Event Lifecycle Timing နားလည်ခြင်း (INITIALIZE vs COMPLETE vs RENDER)
+
+EC-CUBE တွင် Event တစ်ခုချင်းစီ၌ ဖြစ်ပေါ်သည့် အချိန်ကာလ (Lifecycle Stages) (၃) မျိုး ရှိပါသည်။ ဤအချက်ကို ကောင်းစွာ နားလည်ထားခြင်းသည် မှန်ကန်သော Event ကို ရွေးချယ်နိုင်ရန် အလွန် အရေးကြီးပါသည်:
+
+```mermaid
+journey
+    title Controller လုပ်ငန်းစဉ် အဆင့်ဆင့်
+    section အဆင့် ၁ - စတင်ဝင်ရောက်ချိန်
+      INITIALIZE Event: 5: ကန့်သတ်ချက်များ စစ်ဆေးခြင်း၊ လမ်းကြောင်း လွှဲပြောင်းခြင်း
+    section အဆင့် ၂ - မူလအလုပ် ပြီးဆုံးချိန်
+      COMPLETE Event: 8: DB သိမ်းပြီးပြီ၊ Email ပို့ခြင်း၊ History မှတ်တမ်းသိမ်းခြင်း
+    section အဆင့် ၃ - စာမျက်နှာဆွဲထုတ်ချိန်
+      RENDER Event: 7: Twig HTML ထဲသို့ အပို Banner / Data များ ထိုးသွင်းခြင်း
+```
+
+### ၁။ `..._INITIALIZE` (စတင်ချိန် / အလုပ်မလုပ်မီ)
+* **ဘယ်အချိန်မှာ ဖြစ်သလဲ:** User က ခလုတ်နှိပ်ပြီး Controller စတင် အလုပ်လုပ်သည့် အချိန် (Database ထဲ Data မသိမ်းရသေးမီ)။
+* **ဘယ်လို အလုပ်မျိုး သုံးသလဲ:** စည်းကမ်းချက် စစ်ဆေးခြင်း (Validation)၊ အသက် မပြည့်သေးပါက အခြား Page သို့ မောင်းထုတ်ခြင်း (Redirect)။
+
+### ၂။ `..._COMPLETE` (ပြီးဆုံးချိန် / အလုပ်ပြီးနောက်)
+* **ဘယ်အချိန်မှာ ဖြစ်သလဲ:** မူရင်း Logic များ (ဥပမာ- Favorite သိမ်းဆည်းခြင်း၊ Order တင်ခြင်း) Database ထဲသို့ အောင်မြင်စွာ သိမ်းဆည်းပြီးသွားချိန်။
+* **ဘယ်လို အလုပ်မျိုး သုံးသလဲ:** သမိုင်းမှတ်တမ်းသိမ်းခြင်း (History Tracking)၊ Email ပို့ခြင်း၊ Point ပေးခြင်း၊ Webhook ပို့ခြင်း။ (အသုံးအများဆုံး အဆင့် ဖြစ်ပါသည်)။
+
+### ၃။ `..._RENDER` (မျက်နှာပြင် ပြသချိန်)
+* **ဘယ်အချိန်မှာ ဖြစ်သလဲ:** Controller က အလုပ်အားလုံး ပြီးဆုံးပြီးနောက် User ၏ Browser ပေါ်သို့ HTML စာမျက်နှာ (Twig Template) စတင် ဆွဲထုတ်ပြသချိန်။
+* **ဘယ်လို အလုပ်မျိုး သုံးသလဲ:** Twig Template ထဲသို့ နောက်ထပ် အချက်အလက်များ (Parameters) သို့မဟုတ် UI Block များကို Dynamic ထိုးသွင်းလိုသည့်အခါ (Template Hook Points)။
+
+---
+
+## ၁၃။ `$event->setResponse()` ဖြင့် စနစ်လမ်းကြောင်း လွှဲပြောင်းထိန်းချုပ်ခြင်း (Flow Redirection & Guards)
+
+EventListener များသည် နောက်ကွယ်တွင် Data မှတ်တမ်းသိမ်းရုံသာမက **မူလ Controller ၏ အလုပ်ကို ရပ်တန့်ကာ အခြား စာမျက်နှာသို့ လမ်းလွှဲပြောင်း (Redirect) ပေးနိုင်သည့် စွမ်းအား** လည်း ရှိပါသည်။
+
+### ဘယ်လို အခြေအနေမျိုးမှာ သုံးသလဲ?
+* ဝယ်ယူသူသည် အသက် ၁၈ နှစ် မပြည့်သေးပါက အရက်/စီးကရက် ပစ္စည်းများကို Cart ထဲ ထည့်ခွင့်မပြုဘဲ သတိပေး စာမျက်နှာသို့ လမ်းလွှဲလိုသည့်အခါ။
+* VIP Member သာ ဝယ်ယူခွင့်ရှိသော ပစ္စည်းကို သာမန် Member က ဝယ်ယူရန် ကြိုးစားသည့်အခါ အသင်းဝင်ကြေး ပေးသွင်းရန် စာမျက်နှာသို့ လမ်းလွှဲလိုသည့်အခါ။
+
+### ရေးသားပုံ နမူနာ:
+```php
+namespace Customize\EventListener;
+
+use Eccube\Event\EccubeEvents;
+use Eccube\Event\EventArgs;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+
+class PurchaseRestrictionSubscriber implements EventSubscriberInterface
+{
+    protected $router;
+
+    public function __construct(UrlGeneratorInterface $router)
+    {
+        $this->router = $router;
+    }
+
+    public static function getSubscribedEvents()
+    {
+        // အလုပ်မလုပ်မီ INITIALIZE အဆင့်တွင် ဖမ်းယူရပါမည်
+        return [
+            EccubeEvents::FRONT_PRODUCT_CART_ADD_INITIALIZE => 'checkPurchaseEligibility',
+        ];
+    }
+
+    public function checkPurchaseEligibility(EventArgs $event)
+    {
+        $request = $event->getRequest();
+        
+        // ဥပမာ - ဝယ်ယူခွင့် မရှိဟု သတ်မှတ်သည့် အခြေအနေ
+        $isEligible = false; 
+
+        if (!$isEligible) {
+            // မူလ Cart ထဲ ထည့်မည့် အလုပ်ကို ရပ်တန့်ပြီး Homepage သို့ လမ်းလွှဲလိုက်ပါသည်
+            $redirectUrl = $this->router->generate('homepage');
+            $response = new RedirectResponse($redirectUrl);
+            
+            // setResponse() ထည့်လိုက်သည်နှင့် Controller ၏ အလုပ် ရပ်တန့်သွားပါသည်
+            $event->setResponse($response);
+        }
+    }
+}
+```
+
+---
+
+## ၁၄။ EC-CUBE စတင်လေ့လာသူများ မဖြစ်မနေ သိရှိရမည့် ရွှေစည်းမျဉ်း (၁၀) ချက် (10 Must-Know Golden Rules for Beginners)
+
+EC-CUBE တွင် EventListener များ ရေးသားရာတွင် Junior Developer များ အမြဲတစေ လိုက်နာစောင့်ထိန်းရမည့် ရွှေစည်းမျဉ်း (၁၀) ချက် ဖြစ်ပါသည်:
+
+1. **Rule 1: Core ဖိုင်ကို ဘယ်တော့မှ တိုက်ရိုက် မပြင်ပါနှင့် (Never Touch Core Files):**  
+   `src/Eccube/` နှင့် `vendor/` ကို လုံးဝ မထိရ။ အရာအားလုံးကို `app/Customize/EventListener/` တွင်သာ ရေးသားပါ။
+2. **Rule 2: Event အမည်နှင့် Argument ကို Core ထဲတွင် အမြဲ အတည်ပြုပါ:**  
+   စာလုံးပေါင်း တစ်လုံး မှားယွင်းရုံဖြင့် Event အလုပ်မလုပ်ခြင်း သို့မဟုတ် Argument ရှာမတွေ့ခြင်းများ ဖြစ်တတ်ပါသည်။ `EccubeEvents.php` ကို အမြဲ ဖွင့်ကြည့်ပါ။
+3. **Rule 3: Symfony Autowiring စနစ်ကို ယုံကြည်ပါ:**  
+   ဖိုင်ကို `app/Customize/EventListener/` အောက်တွင် မှန်ကန်စွာ ဆောက်ပြီး `EventSubscriberInterface` ကို implement လုပ်ထားပါက `services.yaml` တွင် ဘာမှ သွားပြင်စရာ မလိုပါ။
+4. **Rule 4: Argument Object များကို Null-Safety စစ်ဆေးပါ:**  
+   `$event->getArgument('...')` မှ ရရှိသော Object တိုင်းကို Method မခေါ်မီ `if ($Object instanceof ExpectedClass)` ဖြင့် အမြဲ စစ်ဆေးပါ။
+5. **Rule 5: Guest User ကို မေ့မထားပါနှင့်:**  
+   `$this->security->getUser()` သည် Login မဝင်ထားသော ဧည့်သည်များအတွက် `null` ဖြစ်နေမည်ကို အမြဲ သတိပြုပါ။
+6. **Rule 6: Single Responsibility Principle (တာဝန် တစ်ခုတည်းကိုသာ ထမ်းဆောင်ပါ):**  
+   EventListener တစ်ခုထဲတွင် မဆိုင်သော အလုပ်များစွာ မစုပြုံပါစေနှင့်။ Favorite မှတ်တမ်းအတွက် Listener တစ်ခု၊ Order အကြောင်းကြားစာအတွက် Listener တစ်ခု သီးခြားစီ ခွဲထားပါ။
+7. **Rule 7: Database Flush ပြုလုပ်ရာတွင် သတိထားပါ:**  
+   EventListener ထဲတွင် Entity ပြင်ဆင်ပြီး `$entityManager->flush()` လုပ်ပါက အခြား Event များ အပြန်အလှန် ပွင့်ထွက်ပြီး အဆုံးမရှိ သံသရာလည်ခြင်း (Infinite Loop) မဖြစ်စေရန် ဂရုပြုပါ။
+8. **Rule 8: Log ရေးမှတ်၍ အမြဲ စစ်ဆေးပါ:**  
+   Event များသည် Background တွင် အလုပ်လုပ်သဖြင့် စနစ် အမှားအယွင်းများကို သိရှိနိုင်ရန် `var/log/dev/site_yyyy-mm-dd.log` ကို အမြဲ စောင့်ကြည့်ပါ။
+9. **Rule 9: စနစ်ထဲ ရောက်မရောက် Console Command ဖြင့် စစ်ဆေးပါ:**  
+   မိမိ၏ Listener ကို စနစ်က အမှန်တကယ် မှတ်သားထားခြင်း ရှိ/မရှိ သိလိုပါက အောက်ပါ Command ဖြင့် စစ်ဆေးနိုင်ပါသည်:
+   ```bash
+   docker compose exec ec-cube bin/console debug:event-dispatcher "eccube.event.front.product.favorite.add.complete"
+   ```
+10. **Rule 10: Cache Clear လုပ်ရန် ဘယ်တော့မှ မမေ့ပါနှင့်:**  
+    Listener အသစ် ရေးသားပြီးတိုင်း သို့မဟုတ် Event ချိတ်ဆက်မှု ပြောင်းလဲပြီးတိုင်း Terminal တွင် အောက်ပါ Command ကို အမြဲတစေ run ပေးရပါမည်:
+    ```bash
+    docker compose exec ec-cube bin/console cache:clear --no-warmup
+    ```
+
+---
+
+> **အနှစ်ချုပ် သဘောတရား:**  
+> EventListener / EventSubscriber သည် EC-CUBE Development တွင် Core Code များကို သန့်ရှင်းစွာ ထိန်းသိမ်းထားပြီး မိမိတို့ လိုအပ်သော စီးပွားရေးဆိုင်ရာ စည်းမျဉ်းများ (Custom Business Logic) ကို စနစ်တကျ၊ လုံခြုံစိတ်ချစွာ ပေါင်းစပ်နိုင်သည့် အထိရောက်ဆုံးနှင့် အဆင့်အတန်း အမြင့်မားဆုံး စံနှုန်းဖြစ်ပါသည်။
