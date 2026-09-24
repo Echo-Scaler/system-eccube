@@ -123,7 +123,7 @@ file that was distributed with this source code.
                                             <!-- 1. Member ID -->
                                             <td class="ps-4 fw-bold">
                                                 {% if History.Customer %}
-                                                    <a href="{{ url('admin_customer_customer_edit', { id: History.Customer.id }) }}" class="text-decoration-none font-monospace" target="_blank">
+                                                    <a href="{{ url('admin_customer_edit', { id: History.Customer.id }) }}" class="text-decoration-none font-monospace" target="_blank">
                                                         #{{ History.Customer.id }} <i class="fa fa-external-link small text-muted"></i>
                                                     </a>
                                                 {% else %}

@@ -1448,7 +1448,7 @@ file that was distributed with this source code.
                                             <!-- 1. Member ID -->
                                             <td class="ps-4 fw-bold">
                                                 {% if History.Customer %}
-                                                    <a href="{{ url('admin_customer_customer_edit', { id: History.Customer.id }) }}" class="text-decoration-none font-monospace" target="_blank">
+                                                    <a href="{{ url('admin_customer_edit', { id: History.Customer.id }) }}" class="text-decoration-none font-monospace" target="_blank">
                                                         #{{ History.Customer.id }} <i class="fa fa-external-link small text-muted"></i>
                                                     </a>
                                                 {% else %}
@@ -1556,3 +1556,20 @@ docker compose exec ec-cube bin/console cache:clear --no-warmup
      - **Action** (`登録 (Register)` - အစိမ်းရောင် badge / `解除 (Remove)` - အနီရောင် badge)
      - **Date/Time** (တိကျသော အချိန်နှင့် ရက်စွဲ)
      တို့ သပ်ရပ်လှပစွာ ပေါ်နေသည်ကို စစ်ဆေးအတည်ပြုနိုင်ပါသည်။
+
+---
+
+## ၇။ ရှိနှင့်ပြီးသား Favorite Data များကို History Table သို့ ထည့်သွင်းခြင်း (Backfill Existing Favorites to History)
+
+### ပြဿနာနှင့် အကြောင်းရင်း:
+ဤ Feature အသစ်ကို စနစ်ထဲ မထည့်သွင်းမီကတည်းက စနစ်တွင် ရှိနှင့်ပြီးသား ဝယ်ယူသူများ၏ Favorite Data များ (`dtb_customer_favorite_product`) ရှိနေနိုင်ပါသည်။ ထို Data များသည် အသစ်ဆောက်လိုက်သော History Table (`dtb_customer_favorite_product_history`) ထဲသို့ အလိုအလျောက် ရောက်ရှိမလာသေးသည့်အတွက် History Page ကို စတင်ဖွင့်ချိန်တွင် "まだこの商品のアクション履歴はありません" ဟု ပြနေခြင်း ဖြစ်ပါသည်။
+
+### ဖြေရှင်းနည်း (Data Backfill SQL):
+မူလ ရှိနှင့်ပြီးသား Favorite Data များကို ၎င်းတို့ စတင် Favorite ပြုလုပ်ခဲ့သည့် မူရင်းရက်စွဲ (`create_date`) အတိုင်း `action = 'register'` ဖြင့် History Table ထဲသို့ ကူးယူထည့်သွင်းပေးသည့် SQL Command:
+
+```bash
+docker compose exec ec-cube bin/console doctrine:query:sql "INSERT INTO dtb_customer_favorite_product_history (customer_id, product_id, action, create_date) SELECT f.customer_id, f.product_id, 'register', f.create_date FROM dtb_customer_favorite_product f WHERE NOT EXISTS (SELECT 1 FROM dtb_customer_favorite_product_history h WHERE h.customer_id = f.customer_id AND h.product_id = f.product_id AND h.action = 'register');"
+```
+
+ဤ Command ကို run ပေးလိုက်ခြင်းဖြင့် ယခင်ကတည်းက Favorite လုပ်ထားခဲ့သော Customer များ၏ **Member ID, Member Name, Action: 登録 (Register) နှင့် မူလ Register Time** များ အားလုံး အလိုအလျောက် ပြည့်စုံစွာ ပေါ်လာမည် ဖြစ်ပါသည်။
+
