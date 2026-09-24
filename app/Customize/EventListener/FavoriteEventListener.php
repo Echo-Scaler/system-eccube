@@ -13,15 +13,19 @@
 
 namespace Customize\EventListener;
 
+use Customize\Entity\CustomerFavoriteProductHistory;
+use Customize\Repository\CustomerFavoriteProductHistoryRepository;
+use Eccube\Entity\Customer;
 use Eccube\Event\EccubeEvents;
 use Eccube\Event\EventArgs;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Security\Core\Security;
 
 /**
  * Class FavoriteEventListener
  *
- * အကြိုက်ဆုံးပစ္စည်း (Favorite Product) နှင့် သက်ဆိုင်သော Event များကို စောင့်ကြည့်ဖမ်းယူသည့် Event Subscriber ဖြစ်ပါသည်။
+ * အကြိုက်ဆုံးပစ္စည်း (Favorite Product) နှင့် သက်ဆိုင်သော Event များကို စောင့်ကြည့်ဖမ်းယူပြီး History Table ထဲသို့ မှတ်တမ်းတင်ပေးသော Event Subscriber ဖြစ်ပါသည်။
  * (Event Subscriber for listening to Favorite Product events in EC-CUBE)
  */
 class FavoriteEventListener implements EventSubscriberInterface
@@ -32,13 +36,30 @@ class FavoriteEventListener implements EventSubscriberInterface
     protected $logger;
 
     /**
+     * @var CustomerFavoriteProductHistoryRepository
+     */
+    protected $historyRepository;
+
+    /**
+     * @var Security
+     */
+    protected $security;
+
+    /**
      * FavoriteEventListener constructor.
      *
      * @param LoggerInterface $logger
+     * @param CustomerFavoriteProductHistoryRepository $historyRepository
+     * @param Security $security
      */
-    public function __construct(LoggerInterface $logger)
-    {
+    public function __construct(
+        LoggerInterface $logger,
+        CustomerFavoriteProductHistoryRepository $historyRepository,
+        Security $security
+    ) {
         $this->logger = $logger;
+        $this->historyRepository = $historyRepository;
+        $this->security = $security;
     }
 
     /**
@@ -79,12 +100,22 @@ class FavoriteEventListener implements EventSubscriberInterface
     public function onFavoriteAddComplete(EventArgs $event)
     {
         $Product = $event->getArgument('Product');
-        if ($Product) {
-            $this->logger->info(sprintf('[Favorite] Product Favorite Add Completed: Product ID=%d, Name=%s', $Product->getId(), $Product->getName()));
-            
-            // Note for Junior Developers:
-            // ဤနေရာတွင် လိုအပ်ပါက ဝယ်ယူသူထံ Email ပို့ခြင်း၊ Notification ထုတ်ပေးခြင်း၊
-            // သို့မဟုတ် Point ပေးခြင်း စသည့် Custom Logic များကို ချဲ့ထွင်ရေးသားနိုင်ပါသည်။
+        $Customer = $this->security->getUser();
+
+        if ($Product && $Customer instanceof Customer) {
+            // History Record အသစ် ထည့်သွင်းခြင်း (Action = register)
+            $this->historyRepository->addHistory(
+                $Customer,
+                $Product,
+                CustomerFavoriteProductHistory::ACTION_REGISTER
+            );
+
+            $this->logger->info(sprintf(
+                '[Favorite History] Registered: Customer ID=%d, Product ID=%d, Name=%s',
+                $Customer->getId(),
+                $Product->getId(),
+                $Product->getName()
+            ));
         }
     }
 
@@ -99,8 +130,22 @@ class FavoriteEventListener implements EventSubscriberInterface
         $Customer = $event->getArgument('Customer');
         $CustomerFavoriteProduct = $event->getArgument('CustomerFavoriteProduct');
 
-        if ($Customer && $CustomerFavoriteProduct) {
-            $this->logger->info(sprintf('[Favorite] Product Favorite Removed: Customer ID=%d, Favorite ID=%d', $Customer->getId(), $CustomerFavoriteProduct->getId()));
+        if ($Customer instanceof Customer && $CustomerFavoriteProduct && $CustomerFavoriteProduct->getProduct()) {
+            $Product = $CustomerFavoriteProduct->getProduct();
+
+            // History Record အသစ် ထည့်သွင်းခြင်း (Action = remove)
+            $this->historyRepository->addHistory(
+                $Customer,
+                $Product,
+                CustomerFavoriteProductHistory::ACTION_REMOVE
+            );
+
+            $this->logger->info(sprintf(
+                '[Favorite History] Removed: Customer ID=%d, Product ID=%d, Favorite ID=%d',
+                $Customer->getId(),
+                $Product->getId(),
+                $CustomerFavoriteProduct->getId()
+            ));
         }
     }
 }

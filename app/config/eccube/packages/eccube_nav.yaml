@@ -10,6 +10,9 @@ parameters:
                 custom_product_list:
                     name: admin.product.custom_product_list
                     url: admin_product_custom_list
+                favourite_product:
+                    name: admin.favorite.favorite_products
+                    url: admin_product_favourite
 
                 product_edit:
                     name: admin.product.product_registration

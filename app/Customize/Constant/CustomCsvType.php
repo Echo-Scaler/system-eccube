@@ -13,11 +13,15 @@
 
 namespace Customize\Constant;
 
+/**
+ * Class CustomCsvType
+ *
+ * Custom CSV Type Constants for EC-CUBE 4.3
+ */
 class CustomCsvType
 {
     /**
-     * @var integer Favorite Product CSV Type ID (mtb_csv_type ID)
+     * mtb_csv_type တွင် အသုံးပြုမည့် အကြိုက်ဆုံး ကုန်ပစ္စည်းများ CSV Type ID
      */
     public const CSV_TYPE_FAVOURITE_PRODUCT = 20;
-    public const CSV_TYPE_FAVORITE_PRODUCT = 20;
 }
