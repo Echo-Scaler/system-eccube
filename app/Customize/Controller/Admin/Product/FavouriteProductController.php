@@ -14,6 +14,7 @@
 namespace Customize\Controller\Admin\Product;
 
 use Customize\Constant\CustomCsvType;
+use Customize\Form\Type\Admin\SearchFavouriteProductType;
 use Customize\Repository\FavouriteProductRepository;
 use Eccube\Controller\AbstractController;
 use Eccube\Entity\ExportCsvRow;
@@ -22,6 +23,7 @@ use Eccube\Event\EventArgs;
 use Eccube\Service\CsvExportService;
 use Knp\Component\Pager\PaginatorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -75,9 +77,9 @@ class FavouriteProductController extends AbstractController
      *
      * @param Request $request
      * @param int|null $page_no
-     * @return array
+     * @return array|RedirectResponse
      */
-    public function index(Request $request, $page_no = null): array
+    public function index(Request $request, $page_no = null)
     {
         if (null !== $page_no) {
             $this->session->set('eccube.admin.product.favourite.page_no', (int) $page_no);
@@ -87,13 +89,37 @@ class FavouriteProductController extends AbstractController
 
         $page_count = $this->eccubeConfig->get('eccube_default_page_count');
 
-        // Favorite ကုန်ပစ္စည်းများ QueryBuilder ရယူခြင်း
-        $qb = $this->favouriteProductRepository->getFavouriteDb();
+        // Search Form တည်ဆောက်ခြင်း
+        $searchForm = $this->createForm(SearchFavouriteProductType::class);
+
+        // 検索条件のクリア処理 (Clear button handling)
+        if ($request->query->get('clear')) {
+            $this->session->remove('eccube.admin.product.favourite.search');
+            $this->session->remove('eccube.admin.product.favourite.page_no');
+            return $this->redirectToRoute('admin_product_favourite');
+        }
+
+        $searchForm->handleRequest($request);
+
+        // 検索条件の保持と適用 (Session & Request)
+        if ($searchForm->isSubmitted() && $searchForm->isValid()) {
+            $searchData = $searchForm->getData() ?? [];
+            $this->session->set('eccube.admin.product.favourite.search', $searchData);
+        } else {
+            $searchData = $this->session->get('eccube.admin.product.favourite.search', []);
+            if (!empty($searchData)) {
+                $searchForm->setData($searchData);
+            }
+        }
+
+        // Favorite ကုန်ပစ္စည်းများ QueryBuilder ရယူခြင်း (Search Data စစ်ထုတ်ချက်များ အပါအဝင်)
+        $qb = $this->favouriteProductRepository->getQueryBuilderBySearchDataForAdmin($searchData ?: []);
 
         // KnpPaginator ဖြင့် Pagination ပြုလုပ်ခြင်း
         $pagination = $this->paginator->paginate($qb, $page_no, $page_count, ['wrap-queries' => true]);
 
         return [
+            'searchForm' => $searchForm->createView(),
             'pagination' => $pagination,
             'page_no' => $page_no,
         ];
@@ -101,6 +127,7 @@ class FavouriteProductController extends AbstractController
 
     /**
      * အကြိုက်ဆုံး ကုန်ပစ္စည်းများ CSV ဖိုင် ထုတ်ယူခြင်း (Streamed Export)
+     * 検索条件 (Search Conditions) ဖြင့် စစ်ထုတ်ထားသော ဒေတာများကိုသာ Export ပြုလုပ်ပါသည်
      *
      * @Route("/%eccube_admin_route%/product/favourite/export", name="admin_product_favourite_export", methods={"GET"})
      *
@@ -115,13 +142,23 @@ class FavouriteProductController extends AbstractController
         // Memory အကုန်သက်သာစေရန် SQL Logger ကို ပိတ်ထားခြင်း
         $this->entityManager->getConfiguration()->setSQLLogger(null);
 
+        // Search Parameters အလိုက် CSV Export ပြုလုပ်ရန် Search Form bind လုပ်ခြင်း (Request သို့မဟုတ် Session မှ ရယူသည်)
+        $searchForm = $this->createForm(SearchFavouriteProductType::class);
+        $searchForm->handleRequest($request);
+        $searchData = $searchForm->getData() ?? [];
+
+        // Request တွင် parameter မပါလာပါက Session ထဲရှိ 検索条件 ကို အသုံးပြုခြင်း
+        if (empty(array_filter((array) $searchData)) && $this->session->has('eccube.admin.product.favourite.search')) {
+            $searchData = $this->session->get('eccube.admin.product.favourite.search', []);
+        }
+
         $response = new StreamedResponse();
-        $response->setCallback(function () use ($request) {
+        $response->setCallback(function () use ($request, $searchData) {
             // CSV Type ID: 20 ဖြင့် CsvExportService အား စတင်ခြင်း
             $this->csvExportService->initCsvType(CustomCsvType::CSV_TYPE_FAVOURITE_PRODUCT);
 
-            // Favorite ကုန်ပစ္စည်းများအတွက် QueryBuilder ရယူခြင်း
-            $qb = $this->favouriteProductRepository->getFavouriteDb();
+            // Favorite ကုန်ပစ္စည်းများအတွက် Search Data အလိုက် QueryBuilder ရယူခြင်း (絞り込み適用)
+            $qb = $this->favouriteProductRepository->getQueryBuilderBySearchDataForAdmin($searchData ?: []);
 
             // Header (ခေါင်းစဉ်တန်း) ထုတ်ပေးခြင်း
             $this->csvExportService->exportHeader();

@@ -20,6 +20,7 @@ services:
     ### ローカルでビルドする場合は以下のコマンドを使用します
     ## docker build -t ec-cube --no-cache --pull --build-arg TAG=8.1-apache .
     ## docker tag ec-cube ghcr.io/ec-cube/ec-cube-php:8.1-apache
+    platform: linux/amd64
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-ec-cube/ec-cube-php}:${TAG:-8.1-apache}
     ports:
       - 8080:80
@@ -60,6 +61,7 @@ services:
 
   ### Mailcatcher ##################################
   mailcatcher:
+    platform: linux/amd64
     image: schickling/mailcatcher
     ports:
       - "1080:1080"
